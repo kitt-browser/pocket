@@ -24,7 +24,7 @@ watchpocket.post = function (url, data) {
   };
 
   xhr.onreadystatechange = function () {
-    log.debug('ready state change, state:' + this.readyState + ' ' + xhr.status);
+    //log.debug('ready state change, state:' + xhr.readyState + ' ' + xhr.status);
     if (xhr.readyState === 4 && xhr.status === 200) {
       defer.resolve(JSON.parse(xhr.responseText));
     } else if (this.readyState === 4 && this.status === 401) {
@@ -148,12 +148,19 @@ watchpocket.loadBookmarks = function(opts, flags) {
 
         //log.debug('response', response, removedIds);
 
+        console.log("Items to remove: ", removedIds);
+
+        console.log("Items to add: ", items);
+
         _.each(removedIds, function(id) {
+          // Remove items from cache
           delete itemsCache[id];
         });
         _.each(items, function(item) {
           itemsCache[item.id] = item;
         });
+
+
 
         //log.debug('cache', itemsCache);
 
@@ -191,6 +198,9 @@ watchpocket.add = function(url) {
     })
     .then(function() {
       return watchpocket.loadBookmarks({}, {updateCache: true});
+    })
+    .fail(function(error) {
+      console.log(error);
     });
 };
 

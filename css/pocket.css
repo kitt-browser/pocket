@@ -46,3 +46,9 @@
   position: relative;
   float: right;
 }
+
+/* Those has to be removed, when extension is deployed on Kitt */
+html, body {
+    width: 480px;
+    height: 568px;
+}

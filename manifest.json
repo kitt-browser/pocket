@@ -28,10 +28,6 @@
   "browser_action": {
     "default_popup": "bookmarksList.html"
   },
-  "content_scripts": [
-    {
-    }
-  ],
   "web_accessible_resources": [
     "img/*",
     "notification.html",
