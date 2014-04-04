@@ -3,7 +3,7 @@
 
   "name": "pocket",
   "description": "This extension allows you to connect to your Pocket account, bookmark and view a list of all your bookmarks.",
-  "version": "1.10",
+  "version": "1.11",
   "icons": { "128": "img/appIcon.png" },
   "background": {
     "scripts": [
