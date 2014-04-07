@@ -1,3 +1,8 @@
+html, body {
+  min-width: 320px;
+  min-height: 320px;
+}
+
 #bookmarks li {
  height: 20px;
 }
