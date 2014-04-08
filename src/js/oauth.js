@@ -7,7 +7,7 @@ var oauthRequestToken;
 exports.getRequestToken = function() {
   chrome.tabs.query({active: true}, function(tabs) {
     if (tabs.length === 0) {
-      console.error('no active tab found');
+      console.log('ERROR: no active tab found');
       return;
     }
 
@@ -35,7 +35,7 @@ exports.getOauthAccessToken = function() {
 var getAuthorization = function(requestToken) {
   chrome.tabs.query({active: true}, function(tabs) {
     if (tabs.length === 0) {
-      console.error('no active tab found');
+      console.log('ERROR: no active tab found');
       return;
     }
 

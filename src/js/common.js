@@ -41,7 +41,7 @@ var getActiveTab = function() {
 
   chrome.tabs.query({active: true}, function(tabs) {
     if (tabs.length === 0) {
-      console.error('no active tab found');
+      console.log('ERROR: no active tab found');
       return defer.reject();
     }
     return defer.resolve(tabs[0]);

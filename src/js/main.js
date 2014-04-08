@@ -25,7 +25,7 @@ function post(url, data){
         console.log('authenticating...');
         oauth.getRequestToken();
       }
-      return Q.reject();
+      return Q.reject(err);
     })
     .then(function(res) {
       console.log('HTTP request resolved', res);
@@ -161,7 +161,6 @@ watchpocket.loadBookmarks = function(opts, flags) {
           });
         })
         .fail(function(err) {
-          console.error(err);
           throw err;
         });
       });
@@ -183,9 +182,6 @@ watchpocket.add = function(url) {
     })
     .then(function() {
       return watchpocket.loadBookmarks({}, {updateCache: true});
-    })
-    .fail(function(error) {
-      console.log(error);
     });
 };
 
@@ -235,7 +231,6 @@ $(function() {
           .then(function(items) {
             sendResponse(items);
           }, function(err) {
-            console.error(err);
             if (err.code === 401) {
               sendResponse(null);
             }
