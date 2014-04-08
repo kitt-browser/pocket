@@ -27,8 +27,12 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks "grunt-contrib-watch"
   grunt.loadNpmTasks "grunt-crx"
   grunt.loadNpmTasks 'grunt-browserify'
-  
+  grunt.loadNpmTasks 'grunt-bumpup'
+
   grunt.initConfig
+  
+    pkg: grunt.file.readJSON('package.json')
+    manifest: grunt.file.readJSON('src/manifest.json')
 
     clean: [BUILD, DIST]
 
@@ -41,9 +45,13 @@ module.exports = (grunt) ->
       files: '**/*.js'
 
     bumpup:
+      options:
+        updateProps:
+          pkg: './package.json'
+          manifest: './src/manifest.json'
       files: [
-        "manifest.json"
-        "bower.json"
+        "package.json"
+        "src/manifest.json"
       ]
 
     browserify:
@@ -100,7 +108,9 @@ module.exports = (grunt) ->
         baseURL: "http://localhost:8777/" # clueless default
         privateKey: 'key.pem'
 
+  grunt.registerTask "generateCrx", ['bumpup:patch', 'crx:main']
+
   
-  grunt.registerTask "default", ['clean', 'browserify:dist', 'copy', 'crx:main']
-  grunt.registerTask "dev", ['clean', 'browserify:dev', 'copy', 'crx:main', 'watch']
+  grunt.registerTask "default", ['clean', 'browserify:dist', 'copy', 'generateCrx']
+  grunt.registerTask "dev", ['clean', 'browserify:dev', 'copy', 'generateCrx', 'watch']
   return
