@@ -7,13 +7,6 @@
   "icons": { "128": "img/appIcon.png" },
   "background": {
     "scripts": [
-      "vendor/jquery/jquery.js",
-      "vendor/q/q.js",
-      "vendor/underscore/underscore.js",
-      "vendor/momentjs/moment.min.js",
-      "vendor/minilog/minilog.js",
-      "js/common.js",
-      "js/oauth.js",
       "js/main.js"
     ]
   },
@@ -26,7 +19,7 @@
     "https://*/*"
   ],
   "browser_action": {
-    "default_popup": "bookmarksList.html"
+    "default_popup": "html/bookmarksList.html"
   },
   "web_accessible_resources": [
     "img/*",
