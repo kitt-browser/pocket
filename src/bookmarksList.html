@@ -1,19 +1,15 @@
 <!DOCTYPE html>
-<html ng-app="pocket">
+<html ng-app="pocket" class="chrome-extension">
 	<head>
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
     <title>Pocket Extension</title>
-
-
-    <script type="text/javascript">window.alert('sdfgdfg')</script>
-
     <script src="../js/bookmarkList.js"></script>
   </head>
 
-  <body ng-controller="bookmarksCtrl" style="width: 400px; height: 400px">
+  <body ng-controller="bookmarksCtrl">
 
-    <div class="bar bar-footer bar-positive item-input-inset">
+    <div class="bar bar-footer bar-calm item-input-inset">
       <button class="button ion-ios7-close" ng-click="wipeCache()" ng-show="debugMode"></button>
       <label class="item-input-wrapper">
         <i class="icon ion-ios7-search placeholder-icon"></i>
@@ -29,11 +25,9 @@
 
       <div class="list">
 
-        <a ng-repeat="item in bookmarks" href="#" class="item item-thumbnail-left dn-fade" ng-click="bookmarkSelected(item)">
-          <img ng-src="{{ item.icon }}"/>
-          <h2>{{ item.title || item.url | characters: 30}}</h2>
+        <a ng-repeat="item in bookmarks" href="#" class="item dn-fade" ng-click="bookmarkSelected(item)">
+          <h2>{{ item.title || item.url }}</h2>
           <p>{{ item.domain }}</p>
-          <p><i ng-class="{'icon':true, 'ion-ios7-star':item.favorite, 'ion-ios7-star-outline':!item.favorite}"></i><span class="time-updated" am-time-ago="item.time.updated"></span></p>
         </a>
 
       </div>

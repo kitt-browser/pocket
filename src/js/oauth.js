@@ -5,16 +5,23 @@ var constants = require("./constants");
 var oauthRequestToken;
 
 exports.getRequestToken = function() {
+  if (tabs.length === 0) {
+    console.error('no active tab found');
+    return;
+  }
+
   return xhr.post(
     'https://getpocket.com/v3/oauth/request',
     JSON.stringify({
       'consumer_key' : constants.consumerKey,
-      'redirect_uri' : chrome.extension.getURL('html/auth.html') + '?secret=MyLittlePinkPony'
+      'redirect_uri' : chrome.extension.getURL('auth.html') + 
+        '?token=MyLittlePinkPony&url=' + 
+        window.btoa(encodeURIComponent(tabs[0].url))
     })
   ).then(function(response) {
     oauthRequestToken = response.code;
     getAuthorization(response.code);
-  });
+  }).done();
 };
 
 
@@ -22,19 +29,23 @@ exports.getOauthAccessToken = function() {
   return common.getFromStorage('oauthAccessToken');
 };
 
-var getAuthorization = function(requestToken) {
-  var url = [
-    'https://getpocket.com/auth/authorize?request_token=',
-    requestToken,
-    '&redirect_uri=',
-    chrome.extension.getURL('html/auth.html') + '?secret=MyLittlePinkPony'
-  ].join('');
 
+var getAuthorization = function(requestToken) {
   chrome.tabs.query({active: true}, function(tabs) {
     if (tabs.length === 0) {
       console.error('no active tab found');
       return;
     }
+
+    var url = [
+      'https://getpocket.com/auth/authorize?request_token=',
+      requestToken,
+      '&redirect_uri=',
+      encodeURIComponent(chrome.extension.getURL('auth.html') +
+        '?token=MyLittlePinkPony&url=' +
+        window.btoa(encodeURIComponent(tabs[0].url)))
+    ].join('');
+
     chrome.tabs.update(tabs[0].id, {url:url}, function(){
       console.log('updated tab');
       // TODO(Tom): Close the popup.

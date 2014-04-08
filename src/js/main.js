@@ -118,7 +118,7 @@ watchpocket.loadBookmarks = function(opts, flags) {
           return params;
         }
       })
-      
+
       .then(function(params) {
         log.debug('params', params);
         return post('https://getpocket.com/v3/get', JSON.stringify(params));
@@ -202,7 +202,9 @@ $(function() {
   var addToPocketMenuId = chrome.contextMenus.create({
     id: "pocketContextMenu",
     title: 'Add to Pocket',
-    contexts : ['all'],
+    // 'all' would include 'selection' which is a text-only selection in Kitt
+    // Doesn't make sense for Pocket URL-oriented function
+    contexts : ['link', 'page'],
     enabled: true
   });
 
@@ -210,7 +212,10 @@ $(function() {
     if (info.menuItemId !== addToPocketMenuId) {
       return;
     }
-    watchpocket.add(info.linkUrl);
+    // linkUrl by chrome spec is applicable "when the element is a link"
+    // therefore when the context menu is the sharing menu (context is the
+    // whole webpage), linkUrl is not set and pageUrl holds the URL
+    watchpocket.add(info.linkUrl || info.pageUrl);
   });
 
   chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {

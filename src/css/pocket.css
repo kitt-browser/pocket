@@ -1,3 +1,8 @@
+html, body {
+  min-width: 320px;
+  min-height: 320px;
+}
+
 #bookmarks li {
  height: 20px;
 }
@@ -47,8 +52,3 @@
   float: right;
 }
 
-/* Those has to be removed, when extension is deployed on Kitt */
-html, body {
-    width: 480px;
-    height: 568px;
-}
