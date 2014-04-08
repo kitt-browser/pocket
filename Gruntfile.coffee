@@ -28,6 +28,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks "grunt-crx"
   grunt.loadNpmTasks 'grunt-browserify'
   grunt.loadNpmTasks 'grunt-bumpup'
+  grunt.loadNpmTasks 'grunt-s3'
 
   grunt.initConfig
   
@@ -108,9 +109,28 @@ module.exports = (grunt) ->
         baseURL: "http://localhost:8777/" # clueless default
         privateKey: 'key.pem'
 
+    s3:
+      options:
+        key: process.env.S3_KEY
+        secret: process.env.S3_SECRET
+        bucket: process.env.S3_BUCKET
+        access: 'private'
+        headers:
+          # Two Year cache policy (1000 * 60 * 60 * 24 * 730).
+          "Cache-Control": "max-age=630720000, public",
+          "Expires": new Date(Date.now() + 63072000000).toUTCString()
+      dist:
+        upload: [
+          src: "dist/*.crx"
+          dest: process.env.NODE_ENV
+        ]
+
   grunt.registerTask "generateCrx", ['bumpup:patch', 'crx:main']
 
   
   grunt.registerTask "default", ['clean', 'browserify:dist', 'copy', 'generateCrx']
   grunt.registerTask "dev", ['clean', 'browserify:dev', 'copy', 'generateCrx', 'watch']
-  return
+
+  grunt.registerTask 'upload', ->
+    grunt.fail.fatal("NODE_ENV not specified") unless process.env.NODE_ENV?
+    grunt.task.run ['default', 's3:dist']
