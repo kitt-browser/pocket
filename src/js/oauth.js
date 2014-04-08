@@ -15,7 +15,7 @@ exports.getRequestToken = function() {
       'https://getpocket.com/v3/oauth/request',
       JSON.stringify({
         'consumer_key' : constants.consumerKey,
-        'redirect_uri' : chrome.extension.getURL('auth.html') + 
+        'redirect_uri' : chrome.extension.getURL('html/auth.html') + 
           '?token=MyLittlePinkPony&url=' + 
           window.btoa(encodeURIComponent(tabs[0].url))
       })
@@ -43,7 +43,7 @@ var getAuthorization = function(requestToken) {
       'https://getpocket.com/auth/authorize?request_token=',
       requestToken,
       '&redirect_uri=',
-      encodeURIComponent(chrome.extension.getURL('auth.html') +
+      encodeURIComponent(chrome.extension.getURL('html/auth.html') +
         '?token=MyLittlePinkPony&url=' +
         window.btoa(encodeURIComponent(tabs[0].url)))
     ].join('');
