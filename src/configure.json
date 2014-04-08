@@ -1,0 +1,4 @@
+{
+  "globals": {"XMLHttpRequest": false, "navigator": false, "$": false,
+  "sprintf": false}
+}
