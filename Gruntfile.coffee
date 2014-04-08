@@ -129,7 +129,7 @@ module.exports = (grunt) ->
           dest: process.env.NODE_ENV
         ]
 
-  grunt.registerTask "generateCrx", ['bumpup:patch', 'crx:main']
+  grunt.registerTask "generateCrx", ['crx:main']
 
   
   grunt.registerTask "default", ['jshint', 'clean', 'browserify:dist', 'copy', 'generateCrx']
@@ -137,4 +137,4 @@ module.exports = (grunt) ->
 
   grunt.registerTask 'upload', ->
     grunt.fail.fatal("NODE_ENV not specified") unless process.env.NODE_ENV?
-    grunt.task.run ['default', 's3:dist']
+    grunt.task.run ['default', 'bumpup:patch', 's3:dist']
