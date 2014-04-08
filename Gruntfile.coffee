@@ -17,6 +17,10 @@ module.exports = (grunt) ->
     module: false
     process: false
     window: false
+    exports: false
+    require: false
+    localStorage: false
+    XMLHttpRequest: false
 
   
   # --------------------
@@ -43,7 +47,7 @@ module.exports = (grunt) ->
         unused: false
         globals: globals
 
-      files: '**/*.js'
+      files: 'src/js/*.js'
 
     bumpup:
       options:
@@ -128,8 +132,8 @@ module.exports = (grunt) ->
   grunt.registerTask "generateCrx", ['bumpup:patch', 'crx:main']
 
   
-  grunt.registerTask "default", ['clean', 'browserify:dist', 'copy', 'generateCrx']
-  grunt.registerTask "dev", ['clean', 'browserify:dev', 'copy', 'generateCrx', 'watch']
+  grunt.registerTask "default", ['jshint', 'clean', 'browserify:dist', 'copy', 'generateCrx']
+  grunt.registerTask "dev", ['jshint', 'clean', 'browserify:dev', 'copy', 'generateCrx', 'watch']
 
   grunt.registerTask 'upload', ->
     grunt.fail.fatal("NODE_ENV not specified") unless process.env.NODE_ENV?

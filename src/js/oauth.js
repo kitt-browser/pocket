@@ -2,6 +2,8 @@ var common = require('./common');
 var xhr = require("./xhr");
 var constants = require("./constants");
 
+var oauthRequestToken;
+
 exports.getRequestToken = function() {
   return xhr.post(
     'https://getpocket.com/v3/oauth/request',

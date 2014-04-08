@@ -86,7 +86,7 @@ watchpocket.loadBookmarks = function(opts, flags) {
 
     if ( ! flags.updateCache && ! opts.search && bookmarks.length > 0 && bookmarks.length > opts.offset) {
       log.debug('loading bookmarks from cache', opts, bookmarks.length);
-      var bookmarksByUpdateTime = _.sortBy(bookmarks, function(b) {return b.time.updated}).reverse();
+      var bookmarksByUpdateTime = _.sortBy(bookmarks, function(b) {return b.time.updated;}).reverse();
       log.debug('bookmarksByUpdateTime', bookmarksByUpdateTime.length, _.pluck(_.pluck(bookmarksByUpdateTime, 'time'), 'updated'));
       var result = bookmarksByUpdateTime.slice(opts.offset, opts.offset + opts.count);
       log.debug('result', result.length, _.pluck(_.pluck(result, 'time'), 'updated'));
@@ -126,23 +126,19 @@ watchpocket.loadBookmarks = function(opts, flags) {
 
       .then(function(response) {
         var list = response.list;
-        console.log('luist', list)
         var items = _.compact(_.map(list, processItem));
-        console.log('luist')
         var removedIds = _.chain(list)
           .values()
           .filter(function(item) {
-            return (item.status > 0)
+            return (item.status > 0);
           })
           .pluck('item_id')
           .value();
-        console.log('luist 2')
 
         _.each(removedIds, function(id) {
           // Remove items from cache
           delete itemsCache[id];
         });
-        console.log('luist 3')
         _.each(items, function(item) {
           itemsCache[item.id] = item;
         });
@@ -154,14 +150,14 @@ watchpocket.loadBookmarks = function(opts, flags) {
           .then(function() {
             // Save the timestamp so that we know where to start next time we
             // request items.
-            return common.saveToStorage('lastUpdateTimestamp', response.since)
+            return common.saveToStorage('lastUpdateTimestamp', response.since);
           })
           .then(function() {
             log.debug('items', _.pluck(items, 'time.updated'));
             return {
               items: items,
               removed: removedIds
-            }
+            };
           });
         })
         .fail(function(err) {
@@ -257,7 +253,7 @@ $(function() {
       case 'wipeBookmarkCache': 
         common.saveToStorage('items', null).then(function() {
           common.saveToStorage('lastUpdateTimestamp', null);
-        })
+        });
         return true;
 
       default:
@@ -269,4 +265,4 @@ $(function() {
 
 module.exports = {
   watchpocket: watchpocket
-}
+};

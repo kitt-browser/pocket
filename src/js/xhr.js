@@ -1,7 +1,7 @@
 var Q = require("../vendor/q/q");
 
 exports.post = function (url, data) {
-  console.log('posting to', url)
+  console.log('posting to', url);
   var defer = Q.defer();
 
   var xhr = new XMLHttpRequest();

@@ -14,7 +14,7 @@ require('../css/pocket.css');
 var common = require('./common');
 
 
-LOG = common.LOG;
+var LOG = common.LOG;
 
 var sort = 'newest';
 var state = 'unread';
@@ -22,7 +22,7 @@ var state = 'unread';
 var localJQuery = $.noConflict(true);
 (function($) {
 
-  angular.module('pocket', [
+  window.angular.module('pocket', [
     'ionic',
     'truncate',
     'angularMoment',
@@ -49,10 +49,10 @@ var localJQuery = $.noConflict(true);
       loadBookmarks({}, {}, function() {
         $scope.$broadcast('scroll.infiniteScrollComplete');
       });
-    }
+    };
 
     var onSearch = _.debounce(function() {
-      $scope.bookmarks = []
+      $scope.bookmarks = [];
       $scope.loadNextPage();
     }, searchDelayMs);
 
@@ -74,7 +74,7 @@ var localJQuery = $.noConflict(true);
       }, function() {
           $scope.$broadcast('scroll.refreshComplete');
       });
-    }
+    };
 
     var loadBookmarks = function(opts, flags, callback) {
       console.log('requesting bookmarks');
@@ -153,7 +153,7 @@ var localJQuery = $.noConflict(true);
       chrome.runtime.sendMessage(null, {
         command: "wipeBookmarkCache"
       });
-    }
+    };
 
   });
 

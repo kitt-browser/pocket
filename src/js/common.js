@@ -57,24 +57,24 @@ var getFromStorage = function(key) {
     defer.resolve(items[key]);
   });
   return defer.promise;
-}
+};
 
 
 var saveToStorage = function(key, val) {
   var defer = Q.defer();
-  var obj = {}
+  var obj = {};
   obj[key] = val;
   chrome.storage.local.set(obj, function() {
     console.log('saved to storage');
     defer.resolve();
   });
   return defer.promise;
-}
+};
 
 
 var LOG = function() {
-  res = "";
-  for(i=0; i<arguments.length; ++i) {
+  var res = "";
+  for(var i=0; i<arguments.length; ++i) {
     if (typeof(arguments[i]) === 'string' || typeof(arguments[i]) === 'function') {
       res += arguments[i] + ' ';
     } else {

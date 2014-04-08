@@ -5,18 +5,18 @@ require('../css/auth.css');
 
 var waitForChrome = function(callback) {
   if ( typeof(chrome) === 'undefined') {
-    setTimeout(function() {
+    window.setTimeout(function() {
       waitForChrome(callback);
     }, 250);
     return;
   } else {
     callback();
   }
-}
+};
 
 $(function() {
   waitForChrome(function() {
-    if (location.search == '?secret=MyLittlePinkPony') {
+    if (window.location.search == '?secret=MyLittlePinkPony') {
       chrome.runtime.sendMessage({command: 'getOauthRequestToken'}, function(err, reqToken) {
         chrome.runtime.sendMessage({command: 'getOauthAccessToken'}, function(err, accessToken) {
           if (err) {
