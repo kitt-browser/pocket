@@ -104,6 +104,12 @@ module.exports = (grunt) ->
             src: 'manifest.json'
             cwd: 'src'
             dest: BUILD
+          },{
+            expand: yes
+            src: ['fonts/*.*']
+            cwd: 'src/vendor/ionic'
+            dest: BUILD
+          },{
           }
         ]
     crx:
