@@ -77,7 +77,7 @@ module.exports = (grunt) ->
       dist:
         files: "<%= browserify.dev.files %>",
         options:
-          transform: ['cssify']
+          transform: ['cssify', 'uglifyify']
 
     watch:
       browserify:
@@ -115,6 +115,7 @@ module.exports = (grunt) ->
     crx:
       main:
         src: ["#{BUILD}/**"]
+        filename: 'pocket.crx'
         dest: DIST
         baseURL: "http://localhost:8777/" # clueless default
         privateKey: 'key.pem'
