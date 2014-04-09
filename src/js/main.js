@@ -143,8 +143,6 @@ watchpocket.loadBookmarks = function(opts, flags) {
           itemsCache[item.id] = item;
         });
 
-        log.debug('cache', itemsCache);
-
         // Return a promise to store items in cache.
         return common.saveToStorage('items', itemsCache)
           .then(function() {
