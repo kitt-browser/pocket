@@ -15,7 +15,7 @@
     "underscore": "~1.6.0",
     "ionic": "1.0.0-beta.1",
     "angular-truncate": "*",
-    "momentjs": "~2.5.1",
+    "moment": "~2.5.1",
     "angular-moment": "~0.6.2",
     "minilog": "~2.0.4",
     "animate.css": "~3.1.0",
@@ -25,28 +25,36 @@
   "install": {
     "path": "vendor",
     "sources": {
-      "angular-truncate": "bower_components/angular-truncate/dist/angular-truncate.js",
-      "animate.css": "bower_components/animate.css/animate.css",
-      "momentjs": "bower_components/momentjs/min/moment.js",
+      "angular-truncate": {
+        "mapping": [{
+          "bower_components/angular-truncate/dist/angular-truncate.min.js": "angular-truncate.js"
+        }]
+      },
+      "animate.css": {
+        "mapping": [{
+          "bower_components/animate.css/animate.min.css": "animate.css"
+        }]
+      },
+      "moment": {
+        "mapping": [{
+          "bower_components/moment/min/moment.min.js": "moment.js"
+        }]
+      },
+      "jquery": {
+        "mapping": [{
+          "bower_components/jquery/jquery.min.js": "jquery.js"
+        }]
+      },
       "ionic": {
         "mapping": [
           {
-            "bower_components/ionic/release/js/ionic.bundle.js": "ionic.bundle.js"
+            "bower_components/ionic/release/js/ionic.bundle.min.js": "ionic.bundle.js"
           },
           {
-            "bower_components/ionic/release/css/ionic.css": "css/ionic.css"
-          },
-          {
-            "bower_components/ionic/release/fonts/ionicons.eot": "fonts/ionicons.eot"
+            "bower_components/ionic/release/css/ionic.min.css": "css/ionic.css"
           },
           {
             "bower_components/ionic/release/fonts/ionicons.svg": "fonts/ionicons.svg"
-          },
-          {
-            "bower_components/ionic/release/fonts/ionicons.ttf": "fonts/ionicons.ttf"
-          },
-          {
-            "bower_components/ionic/release/fonts/ionicons.woff": "fonts/ionicons.woff"
           }
         ]
       }

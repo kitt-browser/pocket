@@ -5,40 +5,4 @@
  * @author Brian Mathews (sparkalow)
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
-angular.module('truncate', [])
-    .filter('characters', function () {
-        return function (input, chars, breakOnWord) {
-            if (isNaN(chars)) return input;
-            if (chars <= 0) return '';
-            if (input && input.length >= chars) {
-                input = input.substring(0, chars);
-
-                if (!breakOnWord) {
-                    var lastspace = input.lastIndexOf(' ');
-                    //get last space
-                    if (lastspace !== -1) {
-                        input = input.substr(0, lastspace);
-                    }
-                }else{
-                    while(input.charAt(input.length-1) === ' '){
-                        input = input.substr(0, input.length -1);
-                    }
-                }
-                return input + '...';
-            }
-            return input;
-        };
-    })
-    .filter('words', function () {
-        return function (input, words) {
-            if (isNaN(words)) return input;
-            if (words <= 0) return '';
-            if (input) {
-                var inputWords = input.split(/\s+/);
-                if (inputWords.length > words) {
-                    input = inputWords.slice(0, words).join(' ') + '...';
-                }
-            }
-            return input;
-        };
-    });
+angular.module("truncate",[]).filter("characters",function(){return function(a,b,c){if(isNaN(b))return a;if(0>=b)return"";if(a&&a.length>=b){if(a=a.substring(0,b),c)for(;" "===a.charAt(a.length-1);)a=a.substr(0,a.length-1);else{var d=a.lastIndexOf(" ");-1!==d&&(a=a.substr(0,d))}return a+"..."}return a}}).filter("words",function(){return function(a,b){if(isNaN(b))return a;if(0>=b)return"";if(a){var c=a.split(/\s+/);c.length>b&&(a=c.slice(0,b).join(" ")+"...")}return a}});
