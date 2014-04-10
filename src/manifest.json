@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "pocket",
-  "description": "This extension allows you to connect to your Pocket account, bookmark and view a list of all your bookmarks.",
+  "description": "The Pocket extension for Kitt makes it easy and convenient to save and retrieve webpages from the popular Pocket service.",
   "version": "1.11.2",
   "icons": {
     "128": "img/appIcon.png"
