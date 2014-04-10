@@ -25,7 +25,7 @@
 
       <div class="list">
 
-        <a ng-repeat="item in bookmarks" href="#" class="item dn-fade" ng-click="bookmarkSelected(item)">
+        <a ng-repeat="item in bookmarks" href="#" class="item" ng-click="bookmarkSelected(item)">
           <h2>{{ item.title || item.url }}</h2>
           <p>{{ item.domain }}</p>
         </a>
