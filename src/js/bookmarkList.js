@@ -86,7 +86,7 @@ window.angular.module('pocket', [
       id: item.id
     }, function(response) {
       if (response && response.error) {
-        LOG('ERROR when deleting bookmarks', error);
+        LOG('ERROR when deleting bookmarks', response.error);
         return;
       }
       LOG('deleted bookmark');
