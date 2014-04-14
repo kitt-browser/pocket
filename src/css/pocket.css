@@ -3,35 +3,11 @@ html, body {
   min-height: 320px;
 }
 
-#bookmarks li {
- height: 20px;
-}
-
-#bookmarks li img {
-  width: 20px;
-  height: 20px;
-}
-
-#bookmarks td {
-  vertical-align: middle;
-}
-
-#bookmarks td.title.ng-click-active {
-  color: red;
-}
-
 .main-spinner {
   position: absolute;
   top: 100px;
   left: 50%;
 }
-
-
-#bookmarks td.thumbnail {
-  width: 30px;
-  height: 30px;
-}
-
 
 .table tr:hover td,
 .table tr:hover th {
@@ -52,3 +28,7 @@ html, body {
   float: right;
 }
 
+ion-content ion-infinite-scroll {
+  position: relative;
+  top: 20px;
+}

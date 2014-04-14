@@ -23,16 +23,18 @@
 
       <ion-refresher on-refresh="onRefresh()"></ion-refresher>
 
-      <div class="list">
+      <ion-list class="list" can-swipe="true">
 
-        <a ng-repeat="item in bookmarks" href="#" class="item" ng-click="bookmarkSelected(item)">
+        <ion-item ng-repeat="item in bookmarks" href="#" class="item" ng-click="bookmarkSelected(item)">
           <h2>{{ item.title || item.url }}</h2>
           <p>{{ item.domain }}</p>
-        </a>
+          <ion-option-button class="button-calm" ng-click="archive($event, item)">archive</ion-option-button>
+        </ion-item>
 
-      </div>
+      </ion-list>
 
       <ion-infinite-scroll
+        style=""
         on-infinite="loadNextPage()"
         ng-if="!allResultsFetched"
         distance="5%">
