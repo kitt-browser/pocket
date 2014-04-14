@@ -16,21 +16,35 @@ Minilog.enable();
 var oauthRequestToken = null;
 var oauthAccessToken = null;
 
+$.support.cors = true; 
 
-function post(url, data){
-  return xhr.post(url, data)
-    .fail(function(err) {
-      console.log('err', err);
-      if (err.code === 401) {
-        console.log('authenticating...');
-        oauth.getRequestToken();
-      }
-      return Q.reject(err);
-    })
-    .then(function(res) {
-      console.log('HTTP request resolved', res);
-      return res;
-    });
+
+function post(url, data) {
+  return makeRequest(url, 'POST', data);
+}
+
+function makeRequest(url, method, data) {
+  if (_.isString(data)) {
+    data = JSON.parse(data);
+  }
+
+  log.debug('makeRequest', url, method, data);
+
+  return Q($.ajax({
+    type: method,
+    url: url,
+    crossDomain: true,
+    data: data,
+    dataType: 'json'
+  })).fail(function(err) {
+    if (err.status === 401) {
+      console.log('authenticating...');
+      oauth.getRequestToken();
+    } else {
+      log.error(err);
+    }
+    return Q.reject(err);
+  });
 }
 
 
@@ -69,6 +83,109 @@ function processItem(item) {
 }
 
 
+function loadCache(flags, opts) {
+
+  log.debug("Loading cache...");
+
+  return common.getFromStorage('items')
+
+    .then(function(_itemsCache) {
+      var itemsCache = _itemsCache || {};
+      var bookmarks = _.values(itemsCache);
+
+      log.debug('Cache loaded');
+
+      if ( ! flags.updateCache && ! opts.search && ! _.isEmpty(bookmarks) &&
+          bookmarks.length > opts.offset) {
+        // Load bookmarks from cache.
+        var bookmarksByUpdateTime = _.sortBy(bookmarks, function(b) {
+          return b.time.updated;
+        });
+        bookmarksByUpdateTime = bookmarksByUpdateTime.reverse();
+        var result = bookmarksByUpdateTime.slice(opts.offset, opts.offset + opts.count);
+
+        log.debug("Loaded bookmarks from cache");
+
+        return {cache: itemsCache, items: result};
+      }
+
+      log.debug("Will load bookmarks from server...");
+
+      return {cache: itemsCache, items: null};
+    });
+}
+
+
+function loadBookmarksFromServer(opts, cache) {
+  log.debug('loading bookmarks from Pocket server.');
+
+  return oauth.getOauthAccessToken().then(function(token) {
+    var params = _.extend({
+      consumer_key: constants.consumerKey,
+      access_token: token
+    }, opts);
+
+    if ( ( opts.search && ! opts.offset) ) {
+      // Don't use `since` parameter, we're not interested only in changes.
+      return params;
+    }
+
+    return common.getFromStorage('lastUpdateTimestamp')
+
+      .then(function(timestamp) {
+        log.debug("last timestamp", timestamp);
+        if (timestamp) {
+          params.since = timestamp;
+        }
+        return params;
+      });
+  })
+
+  .then(function(params) {
+    return post('https://getpocket.com/v3/get', JSON.stringify(params));
+  })
+
+  .then(function(response) {
+    var list = response.list;
+    var items = _.compact(_.map(list, processItem));
+
+    var removedIds = _.chain(list)
+      .values()
+      .filter(function(item) {
+        // Only return archived and read items.
+        return (item.status > 0);
+      })
+      .pluck('item_id')
+      .value();
+
+    console.log('removed ids', removedIds);
+
+    _.each(removedIds, function(id) {
+      // Remove archived/read items from cache.
+      delete cache[id];
+    });
+
+    _.each(items, function(item) {
+      // Save new/updated items to cache.
+      cache[item.id] = item;
+    });
+
+    // Return a promise to store items and timestamp in the cache.
+    var allSaved = Q.all([
+      common.saveToStorage('items', cache), 
+      common.saveToStorage('lastUpdateTimestamp', response.since)
+    ]);
+
+    return allSaved.then(function() {
+      return {
+        items: items,
+        removed: removedIds
+      };
+    });
+  });
+}
+
+
 watchpocket.loadBookmarks = function(opts, flags) {
   // Preprocess arguments.
   _.each(opts, function(val, key) {
@@ -79,90 +196,24 @@ watchpocket.loadBookmarks = function(opts, flags) {
 
   log.debug('opts', opts, flags);
 
-  return common.getFromStorage('items').then(function(_itemsCache) {
-    var itemsCache = _itemsCache || {};
-    var bookmarks = _.values(itemsCache);
-    log.debug('cached bookmarks', bookmarks.length);
+  return loadCache(flags, opts)
+    
+    .then(function(res) {
+      var cache = res.cache;
+      var bookmarks = res.items;
 
-    if ( ! flags.updateCache && ! opts.search && bookmarks.length > 0 && bookmarks.length > opts.offset) {
-      log.debug('loading bookmarks from cache', opts, bookmarks.length);
-      var bookmarksByUpdateTime = _.sortBy(bookmarks, function(b) {return b.time.updated;}).reverse();
-      log.debug('bookmarksByUpdateTime', bookmarksByUpdateTime.length, _.pluck(_.pluck(bookmarksByUpdateTime, 'time'), 'updated'));
-      var result = bookmarksByUpdateTime.slice(opts.offset, opts.offset + opts.count);
-      log.debug('result', result.length, _.pluck(_.pluck(result, 'time'), 'updated'));
-      return {items: result};
-    }
+      log.debug('cache loaded');
 
-    log.debug('loading bookmarks from Pocket server.');
-
-    // Either we were requested to update the cache or the offset is set and we
-    // haven't cached items at that offset yet.
-    return oauth.getOauthAccessToken()
-
-      .then(function(token) {
-        var params = _.extend({
-          consumer_key: constants.consumerKey,
-          access_token: token
-        }, opts);
-        if ( ! opts.offset && bookmarks.length > 0 && ! opts.search) {
-          // Only use 'since' timestamp if we're refreshing or when it's the
-          // first page load (we wouldn't load the whole list otherwise). Don't
-          // use it when we search.
-          return common.getFromStorage('lastUpdateTimestamp').then(function(timestamp) {
-            if (timestamp) {
-              params.since = timestamp;
-            }
-            return params;
-          });
-        } else {
-          return params;
-        }
-      })
-
-      .then(function(params) {
-        log.debug('params', params);
-        return post('https://getpocket.com/v3/get', JSON.stringify(params));
-      })
-
-      .then(function(response) {
-        var list = response.list;
-        var items = _.compact(_.map(list, processItem));
-        var removedIds = _.chain(list)
-          .values()
-          .filter(function(item) {
-            return (item.status > 0);
-          })
-          .pluck('item_id')
-          .value();
-
-        _.each(removedIds, function(id) {
-          // Remove items from cache
-          delete itemsCache[id];
-        });
-        _.each(items, function(item) {
-          itemsCache[item.id] = item;
-        });
-
-        // Return a promise to store items in cache.
-        return common.saveToStorage('items', itemsCache)
-          .then(function() {
-            // Save the timestamp so that we know where to start next time we
-            // request items.
-            return common.saveToStorage('lastUpdateTimestamp', response.since);
-          })
-          .then(function() {
-            log.debug('items', _.pluck(items, 'time.updated'));
-            return {
-              items: items,
-              removed: removedIds
-            };
-          });
-        })
-        .fail(function(err) {
-          throw err;
-        });
-      });
-  };
+      if (bookmarks) {
+        // Bookmarks were loaded from cache. Return them.
+        return {items: bookmarks};
+      } else {
+        // Either we were requested to update the cache or the offset is set and we
+        // haven't cached items starting at that offset yet.
+        return loadBookmarksFromServer(opts, cache);
+      }
+    });
+};
 
 
 watchpocket.add = function(url) {
@@ -183,14 +234,31 @@ watchpocket.add = function(url) {
     });
 };
 
-watchpocket.send = function(method, id) {
-  var params = {
-    consumer_key: constants.consumerKey,
-    access_token: localStorage.oAuthAccessToken,
-    actions: [{'action': method, 'item_id': id}]
-  };
-  return post('https://getpocket.com/v3/send', JSON.stringify(params));
+
+watchpocket.archive = function(itemId) {
+  return oauth.getOauthAccessToken()
+    
+    .then(function(oauthAccessToken) {
+      return makeRequest('https://getpocket.com/v3/send?actions=' + 
+        encodeURIComponent(JSON.stringify([{action: 'archive', item_id: itemId}])) +
+        '&access_token=' + oauthAccessToken + '&consumer_key=' + 
+        constants.consumerKey, 'POST', null);
+    })
+
+    .then(function() {
+      return common.getFromStorage('items');
+    })
+
+    .then(function(items) {
+      delete items[itemId];
+      return items;
+    })
+
+    .then(function(items) {
+      return common.saveToStorage('items', items);
+    });
 };
+
 
 $(function() {
   var addToPocketMenuId = chrome.contextMenus.create({
@@ -229,9 +297,7 @@ $(function() {
           .then(function(items) {
             sendResponse(items);
           }, function(err) {
-            if (err.code === 401) {
-              sendResponse(null);
-            }
+            sendResponse(null);
           })
           .done();
         return true;
@@ -252,6 +318,16 @@ $(function() {
         common.saveToStorage('items', null).then(function() {
           common.saveToStorage('lastUpdateTimestamp', null);
         });
+        return true;
+
+      case 'archiveBookmark':
+        watchpocket.archive(request.id).then(function() {
+          console.log('successfully archived');
+          sendResponse(null);
+        }).fail(function(err) {
+          log.error('archive error', err);
+          sendResponse({error: err});
+        }).done();
         return true;
 
       default:
