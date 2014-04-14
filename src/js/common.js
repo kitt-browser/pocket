@@ -65,7 +65,6 @@ var saveToStorage = function(key, val) {
   var obj = {};
   obj[key] = val;
   chrome.storage.local.set(obj, function() {
-    console.log('saved to storage');
     defer.resolve();
   });
   return defer.promise;

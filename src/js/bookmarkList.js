@@ -42,6 +42,7 @@ window.angular.module('pocket', [
   }, true);
 
   $scope.loadNextPage = function() {
+    LOG("loadNextPage", $scope.bookmarks.length);
     loadBookmarks({}, {}, function() {
       $scope.$broadcast('scroll.infiniteScrollComplete');
     });
@@ -61,7 +62,7 @@ window.angular.module('pocket', [
   $scope.onRefresh = function() {
     LOG('update on refresh!');
     loadBookmarks({
-      offset: null,
+      offset: 0,
       count: null,
       sort: null,
       state: null
@@ -71,6 +72,61 @@ window.angular.module('pocket', [
         $scope.$broadcast('scroll.refreshComplete');
     });
   };
+
+  $scope.archive = function(event, item) {
+    event.preventDefault();
+    event.stopPropagation();
+    archiveItem(item);
+  };
+
+
+  function archiveItem(item) {
+    chrome.runtime.sendMessage(null, {
+      command: "archiveBookmark",
+      id: item.id
+    }, function(response) {
+      if (response && response.error) {
+        LOG('ERROR when deleting bookmarks', error);
+        return;
+      }
+      LOG('deleted bookmark');
+      $scope.bookmarks = mergeBookmarks($scope.bookmarks, [], [item.id]);
+      $scope.$apply();
+    });
+  }
+
+  function mergeBookmarks(bookmarks, updatedBookmarks, removedIds) {
+    // Deep clone bookmarks.
+    bookmarks = JSON.parse(JSON.stringify(bookmarks));
+
+    //console.log('mergeBookmarks', JSON.stringify(arguments, null, 2));
+
+    // Update/add bookmarks.
+    for (var i=0; i<updatedBookmarks.length; ++i) {
+      var item = _.findWhere(bookmarks, {id: updatedBookmarks[i].id});
+      if (item) {
+        bookmarks[bookmarks.indexOf(item)] = updatedBookmarks[i];
+      } else {
+        bookmarks.push(updatedBookmarks[i]);
+      }
+    }
+
+    // Remove the deleted bookmarks.
+    var removed = _.filter(bookmarks, function(item) {
+      return ~removedIds.indexOf(item.id);
+    });
+
+    bookmarks = _.chain(bookmarks)
+      .difference(removed)
+      .sortBy(function(b) {
+        return b.time.updated;
+      })
+      .reverse()
+      .value();
+
+    return bookmarks;
+  }
+
 
   var loadBookmarks = function(opts, flags, callback) {
     console.log('requesting bookmarks');
@@ -94,30 +150,9 @@ window.angular.module('pocket', [
       var bookmarks = response.items || [];
       var removedIds = response.removed || [];
 
-      // Merge in new and updated bookmarks.
-      for (var i=0; i<bookmarks.length; ++i) {
-        var item = _.findWhere($scope.bookmarks, {id: bookmarks[i].id});
-        if (item) {
-          $scope.bookmarks[$scope.bookmarks.indexOf(item)] = bookmarks[i];
-        } else {
-          $scope.bookmarks.push(bookmarks[i]);
-        }
-      }
+      $scope.bookmarks = mergeBookmarks($scope.bookmarks, bookmarks, removedIds);
 
-      // Remove the removed bookmarks.
-      var removed = _.filter($scope.bookmarks, function(item) {
-        return ~removedIds.indexOf(item.id);
-      });
-
-      $scope.bookmarks = _.chain($scope.bookmarks)
-        .difference(removed)
-        .sortBy(function(b) {
-          return b.time.updated;
-        })
-        .reverse()
-        .value();
-
-      $scope.allResultsFetched = (bookmarks.length === 0);
+      $scope.allResultsFetched = _.isEmpty(bookmarks);
       $scope.$apply();
 
       callback();
