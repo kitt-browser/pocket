@@ -37,11 +37,12 @@ function makeRequest(url, method, data) {
     data: data,
     dataType: 'json'
   })).fail(function(err) {
-    if (err.code === 401) {
+    if (err.status === 401) {
       console.log('authenticating...');
       oauth.getRequestToken();
+    } else {
+      log.error(err);
     }
-    log.error(err);
     return Q.reject(err);
   });
 }
@@ -296,10 +297,7 @@ $(function() {
           .then(function(items) {
             sendResponse(items);
           }, function(err) {
-            log.error('Error when loading bookmarks', err);
-            if (err.code === 401) {
-              sendResponse(null);
-            }
+            sendResponse(null);
           })
           .done();
         return true;
