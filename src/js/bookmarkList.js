@@ -17,6 +17,7 @@ var LOG = common.LOG;
 var sort = 'newest';
 var state = 'unread';
 
+CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
 window.angular.module('pocket', [
   'ionic',
@@ -56,6 +57,9 @@ window.angular.module('pocket', [
   $scope.$watch('searchText', function(newVal, oldVal) {
     if (newVal !== oldVal) {
       onSearch();
+    }
+    if (newVal === CLEAN_CACHE_SEARCH_STRING) {
+      $scope.wipeCache();
     }
   });
 
