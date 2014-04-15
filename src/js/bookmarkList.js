@@ -121,9 +121,7 @@ window.angular.module('pocket', [
       // times to make sure the items won't jump around as they're sorted
       // (which could happen if we were sorting just by time which is not
       // unique).
-      .sortBy(function(b) {
-        return b.id;
-      })
+      .sortBy('id')
       .sortBy(function(b) {
         return b.time.updated;
       })
