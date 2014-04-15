@@ -9,14 +9,16 @@ require('../vendor/ionic/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
 
+var Minilog = require("../../node_modules/minilog");
 var common = require('./common');
 
-
-var LOG = common.LOG;
+var log = Minilog('app');
+Minilog.enable();
 
 var sort = 'newest';
 var state = 'unread';
 
+var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
 window.angular.module('pocket', [
   'ionic',
@@ -56,12 +58,15 @@ window.angular.module('pocket', [
     if (newVal !== oldVal) {
       onSearch();
     }
+    if (newVal === CLEAN_CACHE_SEARCH_STRING) {
+      $scope.wipeCache();
+    }
   });
 
   $scope.onRefresh = function() {
-    LOG('update on refresh!');
+    log.debug('update on refresh!');
     loadBookmarks({
-      offset: null,
+      offset: 0,
       count: null,
       sort: null,
       state: null
@@ -72,8 +77,58 @@ window.angular.module('pocket', [
     });
   };
 
+  $scope.archive = function(event, item) {
+    event.preventDefault();
+    event.stopPropagation();
+    archiveItem(item);
+  };
+
+
+  function archiveItem(item) {
+    chrome.runtime.sendMessage(null, {
+      command: "archiveBookmark",
+      id: item.id
+    }, function(response) {
+      if (response && response.error) {
+        log.error('deleting bookmarks', response.error);
+        return;
+      }
+      log.debug('deleted bookmark');
+      $scope.bookmarks = mergeBookmarks($scope.bookmarks, [], [item.id]);
+      $scope.$apply();
+    });
+  }
+
+  function mergeBookmarks(bookmarks, updatedBookmarks, removedIds) {
+    // Update/add bookmarks.
+    for (var i=0; i<updatedBookmarks.length; ++i) {
+      var item = _.findWhere(bookmarks, {id: updatedBookmarks[i].id});
+      if (item) {
+        bookmarks[bookmarks.indexOf(item)] = updatedBookmarks[i];
+      } else {
+        bookmarks.push(updatedBookmarks[i]);
+      }
+    }
+
+    // Remove the deleted bookmarks.
+    var removed = _.filter(bookmarks, function(item) {
+      return ~removedIds.indexOf(item.id);
+    });
+
+    bookmarks = _.chain(bookmarks)
+      .difference(removed)
+      .sortBy(function(b) {
+        return b.time.updated;
+      })
+      .reverse()
+      .value();
+
+    return bookmarks;
+  }
+
+
   var loadBookmarks = function(opts, flags, callback) {
-    console.log('requesting bookmarks');
+    log.debug('requesting bookmarks');
     chrome.runtime.sendMessage(null, {
       command: "loadBookmarks",
       flags: {
@@ -87,6 +142,7 @@ window.angular.module('pocket', [
         count: count,
       })
     }, function(response) {
+      log.debug('reponse', response);
       if ( ! response) {
         window.close();
         return;
@@ -94,30 +150,9 @@ window.angular.module('pocket', [
       var bookmarks = response.items || [];
       var removedIds = response.removed || [];
 
-      // Merge in new and updated bookmarks.
-      for (var i=0; i<bookmarks.length; ++i) {
-        var item = _.findWhere($scope.bookmarks, {id: bookmarks[i].id});
-        if (item) {
-          $scope.bookmarks[$scope.bookmarks.indexOf(item)] = bookmarks[i];
-        } else {
-          $scope.bookmarks.push(bookmarks[i]);
-        }
-      }
+      $scope.bookmarks = mergeBookmarks($scope.bookmarks, bookmarks, removedIds);
 
-      // Remove the removed bookmarks.
-      var removed = _.filter($scope.bookmarks, function(item) {
-        return ~removedIds.indexOf(item.id);
-      });
-
-      $scope.bookmarks = _.chain($scope.bookmarks)
-        .difference(removed)
-        .sortBy(function(b) {
-          return b.time.updated;
-        })
-        .reverse()
-        .value();
-
-      $scope.allResultsFetched = (bookmarks.length === 0);
+      $scope.allResultsFetched = _.isEmpty(bookmarks);
       $scope.$apply();
 
       callback();
@@ -127,7 +162,6 @@ window.angular.module('pocket', [
   $scope.bookmarkSelected = function(item) {
     common.getActiveTab().then(function(tab) {
       chrome.tabs.update(tab.id, {url:item.url}, function(){
-        console.log('going to: ' + item.url);
         window.close();
       });
     });
