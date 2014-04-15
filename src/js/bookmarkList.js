@@ -17,7 +17,7 @@ var LOG = common.LOG;
 var sort = 'newest';
 var state = 'unread';
 
-CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
+var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
 window.angular.module('pocket', [
   'ionic',

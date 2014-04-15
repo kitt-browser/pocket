@@ -1,6 +1,6 @@
 {
   "name": "pocket",
-  "version": "1.11.4",
+  "version": "1.11.5",
   "description": "Kitt Pocket extension.",
   "private": "true",
   "scripts": {
