@@ -125,7 +125,7 @@ function loadBookmarksFromServer(opts, cache) {
       access_token: token
     }, opts);
 
-    if ( ( opts.search && ! opts.offset) ) {
+    if ( ( opts.search || opts.offset) ) {
       // Don't use `since` parameter, we're not interested only in changes.
       return params;
     }
@@ -170,13 +170,18 @@ function loadBookmarksFromServer(opts, cache) {
       cache[item.id] = item;
     });
 
-    // Return a promise to store items and timestamp in the cache.
-    var allSaved = Q.all([
-      common.saveToStorage('items', cache), 
-      common.saveToStorage('lastUpdateTimestamp', response.since)
-    ]);
 
-    return allSaved.then(function() {
+    var allSaved = [
+      common.saveToStorage('items', cache), 
+    ];
+    if ( ! opts.search) {
+      // Only store timestamp if we're not searching (otherwise we would miss
+      // updates because the filter filters them by the search string).
+      allSaved.push(
+        common.saveToStorage('lastUpdateTimestamp', response.since));
+    }
+
+    return Q.all(allSaved).then(function() {
       return {
         items: items,
         removed: removedIds
@@ -315,6 +320,7 @@ $(function() {
         return true;
 
       case 'wipeBookmarkCache': 
+        log.debug('wiping cache');
         common.saveToStorage('items', null).then(function() {
           common.saveToStorage('lastUpdateTimestamp', null);
         });
