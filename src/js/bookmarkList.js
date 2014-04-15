@@ -117,6 +117,13 @@ window.angular.module('pocket', [
 
     bookmarks = _.chain(bookmarks)
       .difference(removed)
+      // Sort by name and time.updated. It's a stable sort so we sort it two
+      // times to make sure the items won't jump around as they're sorted
+      // (which could happen if we were sorting just by time which is not
+      // unique).
+      .sortBy(function(b) {
+        return b.id;
+      })
       .sortBy(function(b) {
         return b.time.updated;
       })

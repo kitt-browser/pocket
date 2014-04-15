@@ -98,10 +98,15 @@ function loadCache(flags, opts) {
       if ( ! flags.updateCache && ! opts.search && ! _.isEmpty(bookmarks) &&
           bookmarks.length > opts.offset) {
         // Load bookmarks from cache.
-        var bookmarksByUpdateTime = _.sortBy(bookmarks, function(b) {
-          return b.time.updated;
-        });
-        bookmarksByUpdateTime = bookmarksByUpdateTime.reverse();
+        var bookmarksByUpdateTime = _.chain(bookmarks)
+          // Sort by something unique first to ensure stability.
+          .sortBy('id')
+          // Sort by last update time.
+          .sortBy(function(b) {
+            return b.time.updated;
+          })
+          .reverse()
+          .value();
         var result = bookmarksByUpdateTime.slice(opts.offset, opts.offset + opts.count);
 
         log.debug("Loaded bookmarks from cache");
