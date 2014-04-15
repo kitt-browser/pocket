@@ -58,6 +58,7 @@ window.angular.module('pocket', [
     if (newVal !== oldVal) {
       onSearch();
     }
+    LOG('search: ', newVal);
     if (newVal === CLEAN_CACHE_SEARCH_STRING) {
       $scope.wipeCache();
     }
