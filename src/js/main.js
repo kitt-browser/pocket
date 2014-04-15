@@ -125,7 +125,7 @@ function loadBookmarksFromServer(opts, cache) {
       access_token: token
     }, opts);
 
-    if ( ( opts.search && ! opts.offset) ) {
+    if ( opts.search || opts.offset ) {
       // Don't use `since` parameter, we're not interested only in changes.
       return params;
     }
@@ -142,7 +142,7 @@ function loadBookmarksFromServer(opts, cache) {
   })
 
   .then(function(params) {
-    return post('https://getpocket.com/v3/get', JSON.stringify(params));
+    return post(constants.pocket_api_endpoint + '/get', JSON.stringify(params));
   })
 
   .then(function(response) {
@@ -232,7 +232,7 @@ watchpocket.add = function(url) {
       params.access_token = oauthAccessToken;
     })
     .then(function() {
-      return post('https://getpocket.com/v3/add', JSON.stringify(params));
+      return post(constants.pocket_api_endpoint + '/add', JSON.stringify(params));
     })
     .then(function() {
       return watchpocket.loadBookmarks({}, {updateCache: true});
@@ -244,7 +244,7 @@ watchpocket.archive = function(itemId) {
   return oauth.getOauthAccessToken()
     
     .then(function(oauthAccessToken) {
-      return makeRequest('https://getpocket.com/v3/send?actions=' + 
+      return makeRequest(constants.pocket_api_endpoint + '/send?actions=' + 
         encodeURIComponent(JSON.stringify([{action: 'archive', item_id: itemId}])) +
         '&access_token=' + oauthAccessToken + '&consumer_key=' + 
         constants.consumerKey, 'POST', null);

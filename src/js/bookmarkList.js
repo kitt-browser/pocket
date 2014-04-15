@@ -9,10 +9,11 @@ require('../vendor/ionic/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
 
+var Minilog = require("../../node_modules/minilog");
 var common = require('./common');
 
-
-var LOG = common.LOG;
+var log = Minilog('app');
+Minilog.enable();
 
 var sort = 'newest';
 var state = 'unread';
@@ -43,7 +44,6 @@ window.angular.module('pocket', [
   }, true);
 
   $scope.loadNextPage = function() {
-    LOG("loadNextPage", $scope.bookmarks.length);
     loadBookmarks({}, {}, function() {
       $scope.$broadcast('scroll.infiniteScrollComplete');
     });
@@ -65,7 +65,7 @@ window.angular.module('pocket', [
   });
 
   $scope.onRefresh = function() {
-    LOG('update on refresh!');
+    log.debug('update on refresh!');
     loadBookmarks({
       offset: 0,
       count: null,
@@ -91,21 +91,16 @@ window.angular.module('pocket', [
       id: item.id
     }, function(response) {
       if (response && response.error) {
-        LOG('ERROR when deleting bookmarks', response.error);
+        log.error('deleting bookmarks', response.error);
         return;
       }
-      LOG('deleted bookmark');
+      log.debug('deleted bookmark');
       $scope.bookmarks = mergeBookmarks($scope.bookmarks, [], [item.id]);
       $scope.$apply();
     });
   }
 
   function mergeBookmarks(bookmarks, updatedBookmarks, removedIds) {
-    // Deep clone bookmarks.
-    bookmarks = JSON.parse(JSON.stringify(bookmarks));
-
-    //console.log('mergeBookmarks', JSON.stringify(arguments, null, 2));
-
     // Update/add bookmarks.
     for (var i=0; i<updatedBookmarks.length; ++i) {
       var item = _.findWhere(bookmarks, {id: updatedBookmarks[i].id});
@@ -134,7 +129,7 @@ window.angular.module('pocket', [
 
 
   var loadBookmarks = function(opts, flags, callback) {
-    console.log('requesting bookmarks');
+    log.debug('requesting bookmarks');
     chrome.runtime.sendMessage(null, {
       command: "loadBookmarks",
       flags: {
@@ -167,7 +162,6 @@ window.angular.module('pocket', [
   $scope.bookmarkSelected = function(item) {
     common.getActiveTab().then(function(tab) {
       chrome.tabs.update(tab.id, {url:item.url}, function(){
-        console.log('going to: ' + item.url);
         window.close();
       });
     });
