@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "pocket",
   "description": "The Pocket extension for Kitt makes it easy and convenient to save and retrieve webpages from the popular Pocket service.",
-  "version": "1.11.3",
+  "version": "1.11.4",
   "icons": {
     "128": "img/appIcon.png"
   },
