@@ -38,7 +38,7 @@ function makeRequest(url, method, data) {
     dataType: 'json'
   })).fail(function(err) {
     if (err.status === 401) {
-      console.log('authenticating...');
+      log.debug('authenticating...');
       oauth.getRequestToken();
     } else {
       log.error(err);
@@ -158,7 +158,7 @@ function loadBookmarksFromServer(opts, cache) {
       .pluck('item_id')
       .value();
 
-    console.log('removed ids', removedIds);
+    log.debug('removed ids', removedIds);
 
     _.each(removedIds, function(id) {
       // Remove archived/read items from cache.
@@ -328,7 +328,6 @@ $(function() {
 
       case 'archiveBookmark':
         watchpocket.archive(request.id).then(function() {
-          console.log('successfully archived');
           sendResponse(null);
         }).fail(function(err) {
           log.error('archive error', err);
