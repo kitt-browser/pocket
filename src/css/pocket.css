@@ -32,3 +32,11 @@ ion-content ion-infinite-scroll {
   position: relative;
   top: 20px;
 }
+
+.v-center {
+  display: block;
+  line-height: 1;
+  position: relative;
+  top: 50%;
+  -webkit-transform: translateY(-50%);
+}
