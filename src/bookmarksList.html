@@ -28,7 +28,7 @@
         <ion-item ng-repeat="item in bookmarks" href="#" class="item" ng-click="bookmarkSelected(item)">
           <h2>{{ item.title || item.url }}</h2>
           <p>{{ item.domain }}</p>
-          <ion-option-button class="button-calm" ng-click="archive($event, item)">archive</ion-option-button>
+          <ion-option-button class="button-calm" ng-click="archive($event, item)"><span class="v-center">archive</span></ion-option-button>
         </ion-item>
 
       </ion-list>
