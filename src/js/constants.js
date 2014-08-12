@@ -1,4 +1,4 @@
 module.exports = {
-  consumerKey: '24728-138a886505ed5955209803d6',
+  consumerKey: '28148-433066734282d2aef4f9aafe',
   pocket_api_endpoint: 'https://getpocket.com/v3'
 };
