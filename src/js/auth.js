@@ -42,7 +42,10 @@ $(function() {
         }
       }
     }
-
+    if(url === 'null') {
+      // The tab originally had no URL
+      url = 'about:blank';
+    }
     console.log('Response with ' + token + ' and ' + url);
 
     if (token === 'MyLittlePinkPony' && url) {
