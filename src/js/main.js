@@ -1,8 +1,8 @@
-var $ = require("../vendor/jquery/jquery");
-var Q = require("../vendor/q/q");
-var _ = require("../vendor/underscore/underscore");
-var moment = require("../vendor/moment/moment");
-var Minilog = require("../../node_modules/minilog");
+var $ = require("jquery");
+var Q = require("q");
+var _ = require("underscore");
+var moment = require("moment");
+var Minilog = require("minilog");
 var common = require("./common");
 var xhr = require("./xhr");
 var oauth = require("./oauth");
@@ -16,7 +16,7 @@ Minilog.enable();
 var oauthRequestToken = null;
 var oauthAccessToken = null;
 
-$.support.cors = true; 
+$.support.cors = true;
 
 
 function post(url, data) {
@@ -177,7 +177,7 @@ function loadBookmarksFromServer(opts, cache) {
 
     // Return a promise to store items and timestamp in the cache.
     var allSaved = [
-      common.saveToStorage('items', cache), 
+      common.saveToStorage('items', cache),
     ];
     if ( ! opts.search) {
       // Only store timestamp if we're not searching (otherwise we would miss
@@ -207,7 +207,7 @@ watchpocket.loadBookmarks = function(opts, flags) {
   log.debug('opts', opts, flags);
 
   return loadCache(flags, opts)
-    
+
     .then(function(res) {
       var cache = res.cache;
       var bookmarks = res.items;
@@ -247,28 +247,28 @@ watchpocket.add = function(url) {
 
 watchpocket.archive = function(itemId) {
   return oauth.getOauthAccessToken()
-    
     .then(function(oauthAccessToken) {
-      return makeRequest(constants.pocket_api_endpoint + '/send?actions=' + 
+      return makeRequest(constants.pocket_api_endpoint + '/send?actions=' +
         encodeURIComponent(JSON.stringify([{action: 'archive', item_id: itemId}])) +
-        '&access_token=' + oauthAccessToken + '&consumer_key=' + 
+        '&access_token=' + oauthAccessToken + '&consumer_key=' +
         constants.consumerKey, 'POST', null);
     })
-
     .then(function() {
       return common.getFromStorage('items');
     })
-
     .then(function(items) {
       delete items[itemId];
       return items;
     })
-
     .then(function(items) {
       return common.saveToStorage('items', items);
     });
 };
 
+watchpocket.articleView = function(url) {
+  return makeRequest(constants.article_view_endpoint + '?consumer_key=' + constants.consumerKey +
+    '&images=1&url=' + url + '&output=json', 'GET', null);
+};
 
 $(function() {
   var addToPocketMenuId = chrome.contextMenus.create({
@@ -312,6 +312,14 @@ $(function() {
           .done();
         return true;
 
+      case 'requestArticleView':
+        watchpocket.articleView(request.url)
+          .then(function(response) {
+            sendResponse(response);
+          })
+          .done();
+        return true;
+
       case 'getOauthRequestToken':
         sendResponse(null, oauthRequestToken);
         break;
@@ -324,7 +332,7 @@ $(function() {
          .done();
         return true;
 
-      case 'wipeBookmarkCache': 
+      case 'wipeBookmarkCache':
         log.debug('wiping cache');
         common.saveToStorage('items', null).then(function() {
           common.saveToStorage('lastUpdateTimestamp', null);

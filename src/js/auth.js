@@ -1,4 +1,4 @@
-var $ = require('../vendor/jquery/jquery');
+var $ = require('jquery');
 
 require('../css/auth.css');
 
@@ -8,7 +8,6 @@ var waitForChrome = function(callback) {
     window.setTimeout(function() {
       waitForChrome(callback);
     }, 250);
-    return;
   } else {
     callback();
   }
@@ -17,7 +16,6 @@ var waitForChrome = function(callback) {
 $(function() {
   waitForChrome(function() {
 
-    var token = null;
     var url = null;
 
     var search = window.location.search;
@@ -33,9 +31,6 @@ $(function() {
         var key = terms[i].split('=')[0];
         var value = terms[i].split('=')[1];
 
-        if (key === 'token') {
-          token = value;
-        }
         if (key === 'url') {
           // This is only way, which I managed to get URL with symbols like (=,?,...) through login process
           url = decodeURIComponent(window.atob(value));
@@ -46,16 +41,16 @@ $(function() {
       // The tab originally had no URL
       url = 'about:blank';
     }
-    console.log('Response with ' + token + ' and ' + url);
+    console.log('Response with ' + url);
 
-    if (token === 'MyLittlePinkPony' && url) {
+    if (url) {
       chrome.runtime.sendMessage({command: 'getOauthRequestToken'}, function(err, reqToken) {
         chrome.runtime.sendMessage({command: 'getOauthAccessToken'}, function(err, accessToken) {
           if (err) {
             console.warn('Could not authenticate with pocket: ' + JSON.stringify(err));
             return;
           }
-          console.log('Authentication to pocket successfull.');
+          console.log('Authentication to pocket successful.');
           window.location.href = url;
         });
       });

@@ -1,4 +1,4 @@
-var Q = require('../vendor/q/q');
+var Q = require('q');
 
 var getActiveTab = function() {
   var defer = Q.defer();

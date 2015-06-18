@@ -9,13 +9,13 @@
 
   <body ng-controller="bookmarksCtrl">
 
-    <div class="bar bar-footer bar-calm item-input-inset">
+    <div class="bar bar-header bar-calm item-input-inset">
       <button class="button ion-ios7-close" ng-click="wipeCache()" ng-show="debugMode"></button>
       <label class="item-input-wrapper">
         <i class="icon ion-ios7-search placeholder-icon"></i>
         <input type="search" placeholder="Search" ng-model="searchText">
       </label>
-      <button class="button ion-plus" ng-click="addCurrent()"></button>
+      <button id="add-or-article-view" class="button ion-ios7-plus" ng-click="addCurrentOrArticleView()"></button>
     </div>
 
 

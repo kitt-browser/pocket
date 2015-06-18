@@ -1,4 +1,4 @@
-var Q = require("../vendor/q/q");
+var Q = require("q");
 
 exports.post = function (url, data) {
   console.log('posting to', url);
