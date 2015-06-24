@@ -1,7 +1,6 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.command === 'showArticleView') {
-    console.log('request', request);
     document.head.innerHTML = '<style>img { max-width: 100% }</style>';
-    document.body.innerHTML = request.html;
+    document.body.innerHTML = '<h1>' + request.title + '</h1>' + request.html;
   }
 });

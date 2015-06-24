@@ -186,6 +186,7 @@ window.angular.module('pocket', [
           common.getActiveTab().then(function(tab) {
             chrome.tabs.sendMessage(tab.id, {
               command: 'showArticleView',
+              title: response.title,
               html: response.article
             });
             window.close();
