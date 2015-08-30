@@ -19,6 +19,7 @@ function sendAction(action) {
     action: action
   }, function() {
     if (action.action === 'delete') {
+      alert('before wipecache');
       chrome.runtime.sendMessage(null, {
         command: 'wipeBookmarkCache'
       }, function() { alert('wiped bookmark cache'); });
@@ -41,7 +42,7 @@ function removeStar(itemId) {
 
 function render(itemId, document) { // TODO default value is hardwired 'Add star' -> load it instead!
   var html = '<hr /> Bottom Bar <a id="menuDelete">Delete me</a>';
-     html += '<a id="menuToggleStar" class="star-on">Add Star</a>' + chrome.extension.getURL('auth.html'); // TODO
+     html += '<a id="menuToggleStar" class="star-off">Add Star</a>' + chrome.extension.getURL('auth.html'); // TODO
 
   document.body.innerHTML += html;
   document.getElementById('menuDelete').onclick = function() {

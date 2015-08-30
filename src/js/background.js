@@ -284,8 +284,9 @@ watchpocket.wipeBookmarkCache = function() {
   return common.saveToStorage('items', null).then(function() {
     return common.saveToStorage('lastUpdateTimestamp', null);
   }).then(function() {
-    //alert('cache wiped');
     log.debug('wiping cache');
+    alert('cache wiped');
+    return true;
   });
 };
 
@@ -351,9 +352,8 @@ $(function() {
          .done();
         return true;
 
-      case 'wipeBookmarkCache':
-        watchpocket.wipeBookmarkCache();
-        return true;
+      case 'wipeBookmarkCache': // TODO do not return true...
+        return watchpocket.wipeBookmarkCache();
 
       case 'archiveBookmark':
         watchpocket.archive(request.id).then(function() {
