@@ -270,6 +270,25 @@ watchpocket.articleView = function(url) {
     '&images=1&url=' + url + '&output=json', 'GET', null);
 };
 
+watchpocket.sendApiRequest = function (actions) {
+  return oauth.getOauthAccessToken()
+    .then(function(oauthAccessToken) {
+      return makeRequest(constants.pocket_api_endpoint + '/send?actions=' +
+        encodeURIComponent(JSON.stringify(actions)) +
+        '&access_token=' + oauthAccessToken + '&consumer_key=' +
+        constants.consumerKey, 'POST', null);
+    });
+};
+
+watchpocket.wipeBookmarkCache = function() {
+  return common.saveToStorage('items', null).then(function() {
+    return common.saveToStorage('lastUpdateTimestamp', null);
+  }).then(function() {
+    //alert('cache wiped');
+    log.debug('wiping cache');
+  });
+};
+
 $(function() {
   var addToPocketMenuId = chrome.contextMenus.create({
     id: "pocketContextMenu",
@@ -333,10 +352,7 @@ $(function() {
         return true;
 
       case 'wipeBookmarkCache':
-        log.debug('wiping cache');
-        common.saveToStorage('items', null).then(function() {
-          common.saveToStorage('lastUpdateTimestamp', null);
-        });
+        watchpocket.wipeBookmarkCache();
         return true;
 
       case 'archiveBookmark':
@@ -346,6 +362,15 @@ $(function() {
           log.error('archive error', err);
           sendResponse({error: err});
         }).done();
+        return true;
+
+      case 'modifyBookmark':
+        var actions = [request.action]; // API requires an array of actions
+        watchpocket.sendApiRequest(actions).then(function(response) {
+          //alert(JSON.stringify(response)); TODO
+          sendResponse(null);
+        }).done();
+
         return true;
 
       default:

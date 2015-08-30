@@ -16,11 +16,19 @@ var state = 'unread';
 
 var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
+function isMobile() {
+  return window.navigator.userAgent.indexOf('Mobile') !== -1;
+}
 window.angular.module('pocket', [
   'ionic',
 ])
 
 .controller('bookmarksCtrl', function($scope, $ionicLoading) {
+  if (!isMobile()) { // for debugging purposes
+    document.body.style.width = '400px';
+    document.body.style.height = '400px';
+  }
+
   var count = 20;
 
   var searchDelayMs = 700;
@@ -183,11 +191,13 @@ window.angular.module('pocket', [
           command: 'requestArticleView',
           url: tab.url
         }, function(response) {
+          console.log(JSON.stringify(response));
           common.getActiveTab().then(function(tab) {
             chrome.tabs.sendMessage(tab.id, {
               command: 'showArticleView',
               title: response.title,
-              html: response.article
+              article: response.article,
+              resolved_id: response.resolved_id
             });
             window.close();
           });
