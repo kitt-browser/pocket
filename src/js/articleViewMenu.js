@@ -60,6 +60,11 @@ function render(itemId, document) { // TODO default value is hardwired 'Add star
       menuToggleStar.className = 'star-on';
       menuToggleStar.innerHTML = 'Remove Star';
     }
+
+    // TODO
+    return chrome.runtime.sendMessage(null, {
+      command: 'echo'
+    }, function(ret) { alert(ret); });
   };
 }
 

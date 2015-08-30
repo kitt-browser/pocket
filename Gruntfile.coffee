@@ -64,7 +64,7 @@ module.exports = (grunt) ->
         files: [
           {src: 'src/js/bookmarkList.js', dest: "#{BUILD}/js/bookmarkList.js"}
           {src: 'src/js/auth.js', dest: "#{BUILD}/js/auth.js"}
-          {src: 'src/js/main.js', dest: "#{BUILD}/js/main.js"}
+          {src: 'src/js/background.js', dest: "#{BUILD}/js/background.js"}
           {src: 'src/js/content.js', dest: "#{BUILD}/js/content.js"}
         ]
         options:

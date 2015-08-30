@@ -373,6 +373,9 @@ $(function() {
 
         return true;
 
+      case 'echo':  // TODO for debugging
+        return {a:'echoed message'};
+
       default:
         console.warn('unknown command: ' + JSON.stringify(request));
         break;
