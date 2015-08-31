@@ -38,6 +38,8 @@ window.angular.module('pocket', [
   $scope.pagePocketed = false;
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
+    chrome.runtime.sendMessage(null, {command: 'saveBookmarks', bookmarks: $scope.bookmarks});// TODO delete
+
     if (newVal !== oldVal && newVal === []) {
       $scope.allResultsFetched = false;
       $scope.loadNextPage();

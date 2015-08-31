@@ -18,6 +18,7 @@ var oauthAccessToken = null;
 
 $.support.cors = true;
 
+var saved_bookmarks = false; // TODO maybe just storage is enough
 
 function post(url, data) {
   return makeRequest(url, 'POST', data);
@@ -78,6 +79,8 @@ function processItem(item) {
       favorited: moment.unix(item.time_favorited)
     },
     favorite: (parseInt(item.favorite) === 1),
+    tags: item.tags,
+    foo:'bar' // TODO
     //status: parseInt(item.status)
   };
 }
@@ -177,7 +180,7 @@ function loadBookmarksFromServer(opts, cache) {
 
     // Return a promise to store items and timestamp in the cache.
     var allSaved = [
-      common.saveToStorage('items', cache),
+      common.saveToStorage('items', cache)
     ];
     if ( ! opts.search) {
       // Only store timestamp if we're not searching (otherwise we would miss
@@ -225,7 +228,6 @@ watchpocket.loadBookmarks = function(opts, flags) {
     });
 };
 
-
 watchpocket.add = function(url) {
   var params = {
     consumer_key: constants.consumerKey,
@@ -243,16 +245,18 @@ watchpocket.add = function(url) {
       return watchpocket.loadBookmarks({}, {updateCache: true});
     });
 };
-
-
-watchpocket.archive = function(itemId) {
+watchpocket.sendApiRequest = function (actions) {
   return oauth.getOauthAccessToken()
     .then(function(oauthAccessToken) {
       return makeRequest(constants.pocket_api_endpoint + '/send?actions=' +
-        encodeURIComponent(JSON.stringify([{action: 'archive', item_id: itemId}])) +
+        encodeURIComponent(JSON.stringify(actions)) +
         '&access_token=' + oauthAccessToken + '&consumer_key=' +
         constants.consumerKey, 'POST', null);
-    })
+    });
+};
+
+watchpocket.archive = function(itemId) {
+  return watchpocket.sendApiRequest([{action: 'archive', item_id: itemId}])
     .then(function() {
       return common.getFromStorage('items');
     })
@@ -270,22 +274,11 @@ watchpocket.articleView = function(url) {
     '&images=1&url=' + url + '&output=json', 'GET', null);
 };
 
-watchpocket.sendApiRequest = function (actions) {
-  return oauth.getOauthAccessToken()
-    .then(function(oauthAccessToken) {
-      return makeRequest(constants.pocket_api_endpoint + '/send?actions=' +
-        encodeURIComponent(JSON.stringify(actions)) +
-        '&access_token=' + oauthAccessToken + '&consumer_key=' +
-        constants.consumerKey, 'POST', null);
-    });
-};
-
 watchpocket.wipeBookmarkCache = function() {
   return common.saveToStorage('items', null).then(function() {
     return common.saveToStorage('lastUpdateTimestamp', null);
   }).then(function() {
     log.debug('wiping cache');
-    alert('cache wiped');
     return true;
   });
 };
@@ -322,6 +315,18 @@ $(function() {
         }).done();
         return true;
 
+      case 'saveBookmarks':
+        saved_bookmarks = request.bookmarks;
+        sendResponse({});
+        return true;
+
+      case 'getBookmark':
+        common.getFromStorage('items').then(function(items) { //TODO
+          console.log('!!!wow, saved storage found some shit', items[request.id]);
+          sendResponse(items[request.id]);
+        });
+        return true;
+
       case 'loadBookmarks':
         watchpocket.loadBookmarks(request.opts, request.flags)
           .then(function(items) {
@@ -335,6 +340,7 @@ $(function() {
       case 'requestArticleView':
         watchpocket.articleView(request.url)
           .then(function(response) {
+            console.log((response)); // TODO
             sendResponse(response);
           })
           .done();
@@ -352,8 +358,10 @@ $(function() {
          .done();
         return true;
 
-      case 'wipeBookmarkCache': // TODO do not return true...
-        return watchpocket.wipeBookmarkCache();
+      case 'wipeBookmarkCache':
+        watchpocket.wipeBookmarkCache();
+        sendResponse({text: 'cache wiped'});
+        return true;
 
       case 'archiveBookmark':
         watchpocket.archive(request.id).then(function() {
@@ -367,14 +375,14 @@ $(function() {
       case 'modifyBookmark':
         var actions = [request.action]; // API requires an array of actions
         watchpocket.sendApiRequest(actions).then(function(response) {
-          //alert(JSON.stringify(response)); TODO
-          sendResponse(null);
+          sendResponse(response);
         }).done();
-
         return true;
 
-      case 'echo':  // TODO for debugging
-        return {a:'echoed message'};
+      case 'echo':
+        console.log('mybookmarkresposne', request);
+        sendResponse({rest_response: request});
+        return true;
 
       default:
         console.warn('unknown command: ' + JSON.stringify(request));
@@ -382,7 +390,3 @@ $(function() {
     }
   });
 });
-
-module.exports = {
-  watchpocket: watchpocket
-};

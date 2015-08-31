@@ -19,10 +19,9 @@ function sendAction(action) {
     action: action
   }, function() {
     if (action.action === 'delete') {
-      alert('before wipecache');
       chrome.runtime.sendMessage(null, {
         command: 'wipeBookmarkCache'
-      }, function() { alert('wiped bookmark cache'); });
+      }, function() { console.log('wiped bookmark cache'); }); // TODO
     }
   });
 }
@@ -33,16 +32,31 @@ function deleteItem(itemId) {
 }
 
 function addStar(itemId) {
-  alert('added star' + itemId);
+  var action = generateAction('favorite', itemId);
+  chrome.storage.local.get('items', function(res){
+    res.items[itemId].favorite = true;
+    chrome.storage.local.set({'items':res.items});
+  });
+  sendAction(action);
 }
 
 function removeStar(itemId) {
-  alert('removedStar' + itemId);
+  var action = generateAction('unfavorite', itemId);
+  chrome.storage.local.get('items', function(res) {
+    res.items[itemId].favorite = false;
+    chrome.storage.local.set({'items':res.items});
+  });
+  sendAction(action);
 }
 
-function render(itemId, document) { // TODO default value is hardwired 'Add star' -> load it instead!
-  var html = '<hr /> Bottom Bar <a id="menuDelete">Delete me</a>';
-     html += '<a id="menuToggleStar" class="star-off">Add Star</a>' + chrome.extension.getURL('auth.html'); // TODO
+function render(item) { // TODO update storage with favorite after checking
+  var itemId = item.id;
+
+
+  var html = '<hr /> Bottom Bar <a id="menuDelete">Delete me</a> | ';
+     html += '<a id="menuToggleStar" class="' + (item.favorite? 'star-on': 'star-off') +
+       '">' + (item.favorite? 'Remove Star': 'Add star')+'</a> | '; // TODO
+
 
   document.body.innerHTML += html;
   document.getElementById('menuDelete').onclick = function() {
@@ -60,11 +74,6 @@ function render(itemId, document) { // TODO default value is hardwired 'Add star
       menuToggleStar.className = 'star-on';
       menuToggleStar.innerHTML = 'Remove Star';
     }
-
-    // TODO
-    return chrome.runtime.sendMessage(null, {
-      command: 'echo'
-    }, function(ret) { alert(ret); });
   };
 }
 
