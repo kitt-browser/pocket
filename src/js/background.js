@@ -18,8 +18,6 @@ var oauthAccessToken = null;
 
 $.support.cors = true;
 
-var saved_bookmarks = false; // TODO maybe just storage is enough
-
 function post(url, data) {
   return makeRequest(url, 'POST', data);
 }
@@ -64,8 +62,10 @@ function processItem(item) {
   // Fetches a icon from a great webservice which provides a default fallback icon
   var icon = 'https://web-image.appspot.com/?url=' + realURL;
 
+  var tags = _.isObject(item.tags) ? Object.keys(item.tags) : [];
+
   // Create a data object and push it to the items array
-  return {
+  return { // future TODO: Do not create separate object, only edit the fields in |item|.
     id: id,
     url: realURL,
     title: item.resolved_title || item.given_title,
@@ -79,8 +79,7 @@ function processItem(item) {
       favorited: moment.unix(item.time_favorited)
     },
     favorite: (parseInt(item.favorite) === 1),
-    tags: item.tags,
-    foo:'barr' // TODO
+    tags: tags,
     //status: parseInt(item.status)
   };
 }
@@ -130,7 +129,8 @@ function loadBookmarksFromServer(opts, cache) {
   return oauth.getOauthAccessToken().then(function(token) {
     var params = _.extend({
       consumer_key: constants.consumerKey,
-      access_token: token
+      access_token: token,
+      detailType: 'complete'
     }, opts);
 
     if ( opts.search || opts.offset ) {
@@ -320,7 +320,7 @@ $(function() {
 
       case 'getBookmark':
         common.getFromStorage('items').then(function(items) { //TODO
-          console.log('!wow, found in storage', items[request.id]);
+          console.log('!found in storage', items[request.id]);
           sendResponse(items[request.id]);
         });
         return true;
@@ -338,7 +338,6 @@ $(function() {
       case 'requestArticleView':
         watchpocket.articleView(request.url)
           .then(function(response) {
-            console.log((response)); // TODO
             sendResponse(response);
           })
           .done();
@@ -378,8 +377,8 @@ $(function() {
         return true;
 
       case 'echo':
-        console.log('mybookmarkresposne', request);
-        sendResponse({rest_response: request});
+        console.log('echoed message: ', JSON.stringify(request));
+        sendResponse({rest_response: JSON.stringify(request)});
         return true;
 
       default:

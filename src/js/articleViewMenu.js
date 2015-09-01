@@ -13,6 +13,7 @@ function generateAction(actionName, itemId, properties) {
   return _.extend(action, properties);
 }
 
+
 function sendAction(action) {
   chrome.runtime.sendMessage(null, {
     command: 'modifyBookmark',
@@ -43,13 +44,24 @@ function archiveItem(itemId) {
   chrome.runtime.sendMessage(null, {command: 'archiveBookmark', id: itemId});
 }
 
+
+function actionTagsReplace(itemId, tags) { // array of tags
+  var action = generateAction('tags_replace', itemId, {tags: tags.join(',')});
+  sendAction(action);
+}
+
 function render(item) {
+  chrome.runtime.sendMessage(null, {command:'getBookmark', id: item.id}, function(bookmark) {
+    console.log('hope, this is the same - requested directly', bookmark);
+    chrome.runtime.sendMessage(null, {command: 'echo', itempassed: item, goodbookmark: bookmark});
+  });
+
   var itemId = item.id;
 
 
   var html = '<hr /> Bottom Bar <a id="menuDelete">Delete me</a> | ';
      html += '<a id="menuToggleStar" class="' + (item.favorite? 'star-on': 'star-off') +
-       '">' + (item.favorite? 'Remove Star': 'Add star')+'</a> | <a id="menuArchive">Archive</a>';
+       '">' + (item.favorite? 'Remove Star': 'Add star')+'</a> | <a id="menuArchive">Archive</a> Tags:'+ item.tags;
 
 
   document.body.innerHTML += html;
