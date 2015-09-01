@@ -80,7 +80,7 @@ function processItem(item) {
     },
     favorite: (parseInt(item.favorite) === 1),
     tags: item.tags,
-    foo:'bar' // TODO
+    foo:'barr' // TODO
     //status: parseInt(item.status)
   };
 }
@@ -262,9 +262,6 @@ watchpocket.archive = function(itemId) {
     })
     .then(function(items) {
       delete items[itemId];
-      return items;
-    })
-    .then(function(items) {
       return common.saveToStorage('items', items);
     });
 };
@@ -315,14 +312,15 @@ $(function() {
         }).done();
         return true;
 
-      case 'saveBookmarks':
-        saved_bookmarks = request.bookmarks;
-        sendResponse({});
+      case 'updateBookmarks':
+        watchpocket.loadBookmarks({}, {updateCache: true}).then(function() {
+          sendResponse();
+        });
         return true;
 
       case 'getBookmark':
         common.getFromStorage('items').then(function(items) { //TODO
-          console.log('!!!wow, saved storage found some shit', items[request.id]);
+          console.log('!wow, found in storage', items[request.id]);
           sendResponse(items[request.id]);
         });
         return true;

@@ -18,11 +18,9 @@ function sendAction(action) {
     command: 'modifyBookmark',
     action: action
   }, function() {
-    if (action.action === 'delete') {
       chrome.runtime.sendMessage(null, {
-        command: 'wipeBookmarkCache'
-      }, function() { console.log('wiped bookmark cache'); }); // TODO
-    }
+        command: 'updateBookmarks'
+      });
   });
 }
 
@@ -33,29 +31,25 @@ function deleteItem(itemId) {
 
 function addStar(itemId) {
   var action = generateAction('favorite', itemId);
-  chrome.storage.local.get('items', function(res){
-    res.items[itemId].favorite = true;
-    chrome.storage.local.set({'items':res.items});
-  });
   sendAction(action);
 }
 
 function removeStar(itemId) {
   var action = generateAction('unfavorite', itemId);
-  chrome.storage.local.get('items', function(res) {
-    res.items[itemId].favorite = false;
-    chrome.storage.local.set({'items':res.items});
-  });
   sendAction(action);
 }
 
-function render(item) { // TODO update storage with favorite after checking
+function archiveItem(itemId) {
+  chrome.runtime.sendMessage(null, {command: 'archiveBookmark', id: itemId});
+}
+
+function render(item) {
   var itemId = item.id;
 
 
   var html = '<hr /> Bottom Bar <a id="menuDelete">Delete me</a> | ';
      html += '<a id="menuToggleStar" class="' + (item.favorite? 'star-on': 'star-off') +
-       '">' + (item.favorite? 'Remove Star': 'Add star')+'</a> | '; // TODO
+       '">' + (item.favorite? 'Remove Star': 'Add star')+'</a> | <a id="menuArchive">Archive</a>';
 
 
   document.body.innerHTML += html;
@@ -63,6 +57,9 @@ function render(item) { // TODO update storage with favorite after checking
     deleteItem(itemId);
   };
 
+  document.getElementById('menuArchive').onclick = function() {
+    archiveItem(itemId);
+  };
   var menuToggleStar = document.getElementById('menuToggleStar');
   menuToggleStar.onclick = function() {
     if (menuToggleStar.className === 'star-on') {
