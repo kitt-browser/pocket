@@ -38,6 +38,7 @@
   "web_accessible_resources": [
     "img/*",
     "notification.html",
-    "auth.html"
+    "auth.html",
+    "html/articleViewToolbar.html"
   ]
 }

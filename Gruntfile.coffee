@@ -66,6 +66,7 @@ module.exports = (grunt) ->
           {src: 'src/js/auth.js', dest: "#{BUILD}/js/auth.js"}
           {src: 'src/js/background.js', dest: "#{BUILD}/js/background.js"}
           {src: 'src/js/content.js', dest: "#{BUILD}/js/content.js"}
+          {src: 'src/js/articleViewToolbar.js', dest: "#{BUILD}/js/articleViewToolbar.js"}
         ]
         options:
           transform: ['cssify']
