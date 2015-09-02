@@ -11,6 +11,7 @@ function getParameterByName(name) {
   return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 var _ = require('underscore');
+var $ = require('jquery');
 
 function generateAction(actionName, itemId, properties) {
   var action = {
@@ -54,9 +55,33 @@ function archiveItemRequest(itemId) {
 }
 
 
-function actionTagsReplace(itemId, tags) { // array of tags
-  var action = generateAction('tags_replace', itemId, {tags: tags.join(',')});
+//---------
+function tagRemoveRequest(itemId, tag) {
+  var action = generateAction('tags_remove', itemId, {tags: tag});
   sendAction(action);
+}
+
+function tagAddRequest(itemId, tagName) {
+  var action = generateAction('tags_add', itemId, {tags: tagName});
+  sendAction(action);
+}
+
+function getTagId(tagName) {
+  return 'tag_' + tagName;
+}
+function generateTagHtml(tagName) {
+  var tagId = getTagId(tagName);
+  return '<span id="'+tagId+'">' + tagName + ' <a id="delete_'+tagId + '"> (Delete) </a>,</span> ';
+}
+function deleteTag(itemId, tagName) {
+  var tagId = getTagId(tagName);
+  $('#'+tagId).remove();
+  tagRemoveRequest(itemId, tagName);
+}
+
+function addTag(itemId, tagName) {
+  $("#menuTags").append(generateTagHtml(tagName));
+  tagAddRequest(itemId, tagName);
 }
 
 function render(itemId) {
@@ -85,7 +110,19 @@ function render(itemId) {
       archiveItemRequest(itemId);
     };
 
-    document.getElementById('menuTags').innerHTML = item.tags;
+    _.forEach(item.tags, function(tagName) {
+      var deleteTagId = '#delete_' + getTagId(tagName);
+      $('#menuTags').append(generateTagHtml(tagName));
+      $(deleteTagId).click(function() {
+        deleteTag(itemId, tagName);
+      });
+    });
+
+    $('#addTagForm').submit(function(e) {
+      e.preventDefault();
+      var newTagName = $('#menuAddTag').val();
+      addTag(itemId, newTagName);
+    });
   });
 }
 window.onload = function() {
