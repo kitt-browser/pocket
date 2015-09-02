@@ -122,6 +122,7 @@ function render(itemId) {
       e.preventDefault();
       var newTagName = $('#menuAddTag').val();
       addTag(itemId, newTagName);
+      $('#menuAddTag').val('');
     });
   });
 }
