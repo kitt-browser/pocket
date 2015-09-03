@@ -117,10 +117,12 @@ module.exports = (grunt) ->
     crx:
       main:
         src: ["#{BUILD}/**"]
-        filename: 'pocket.crx'
         dest: DIST
-        baseURL: "http://localhost:8777/" # clueless default
-        privateKey: 'key.pem'
+        options:
+          baseURL: "http://localhost:8777/" # clueless default
+          privateKey: 'key.pem'
+          filename: 'Pocket.crx'
+
 
     s3:
       options:
