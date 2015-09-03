@@ -4,3 +4,4 @@ bower_components
 node_modules
 /dist
 /build
+!node_modules/ionic-framework
