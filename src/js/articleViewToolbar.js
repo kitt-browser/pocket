@@ -1,3 +1,5 @@
+require('../../node_modules/ionic-framework/release/css/ionic.css');
+
 /**
  * Created by tomasnovella on 9/2/15.
  */
@@ -92,17 +94,18 @@ function render(itemId) {
     };
 
     var menuToggleStar = document.getElementById('menuToggleStar');
-    menuToggleStar.className = item.favorite? 'star-on': 'star-off';
-    menuToggleStar.innerHTML = item.favorite? 'Remove Star': 'Add Star';
+    menuToggleStar.innerHTML = '';
+    var star = document.createElement('i');
+    star.className = 'icon ion-android-star';
+    menuToggleStar.className = item.favorite ? 'star-on' : 'star-off';
+    menuToggleStar.appendChild(star);
     menuToggleStar.onclick = function() {
       if (menuToggleStar.className === 'star-on') {
         removeStarRequest(itemId);
-        menuToggleStar.innerHTML = 'Add Star';
         menuToggleStar.className = 'star-off';
       } else {
         addStarRequest(itemId);
         menuToggleStar.className = 'star-on';
-        menuToggleStar.innerHTML = 'Remove Star';
       }
     };
 
