@@ -57,7 +57,7 @@ function archiveItemRequest(itemId) {
 }
 
 
-//---------
+/*
 function tagRemoveRequest(itemId, tag) {
   var action = generateAction('tags_remove', itemId, {tags: tag});
   sendAction(action);
@@ -85,12 +85,14 @@ function addTag(itemId, tagName) {
   $("#menuTags").append(generateTagHtml(tagName));
   tagAddRequest(itemId, tagName);
 }
+*/
 
 function render(itemId) {
   chrome.runtime.sendMessage(null, {command:'getBookmark', id: itemId}, function(item) {
 
     document.getElementById('menuDelete').onclick = function() {
       deleteItemRequest(itemId);
+      this.className="deleted";
     };
 
     var menuToggleStar = document.getElementById('menuToggleStar');
@@ -111,8 +113,10 @@ function render(itemId) {
 
     document.getElementById('menuArchive').onclick = function() {
       archiveItemRequest(itemId);
+      this.className="archived";
     };
 
+    /*
     _.forEach(item.tags, function(tagName) {
       var deleteTagId = '#delete_' + getTagId(tagName);
       $('#menuTags').append(generateTagHtml(tagName));
@@ -127,6 +131,8 @@ function render(itemId) {
       addTag(itemId, newTagName);
       $('#menuAddTag').val('');
     });
+    */
+
   });
 }
 window.onload = function() {
