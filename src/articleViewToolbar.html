@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<script type="text/javascript" src="../js/articleViewToolbar.js"></script>
+<style>
+  * {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    -webkit-tap-highlight-color: transparent; /* For some Androids */
+  }
+
+  html {
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0 15px;
+    border: 0;
+    background: #ededf3;
+  }
+
+  ul {
+    display: block;
+    list-style: none;
+    height: 45px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  li {
+    float: left;
+    width: 33.333%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    text-align: center;
+    line-height: 43px;
+    height: 45px;
+    text-align: center;
+    font-size: 26px;
+    color: #929292;
+  }
+
+  li.star-on, li.archived {
+    color: #eac300;
+  }
+
+  li.deleted {
+    color: #ccc;
+  }
+</style>
+</head>
+<body>
+
+<ul>
+  <li id="menuDelete"><i class="icon ion-trash-b" title="Remove from your Pocket"></i></li>
+  <li id="menuToggleStar">Loading...</li>
+  <li id="menuArchive"><i class="icon ion-checkmark" title="Archive"></i></li>
+  <!--
+  This is now hidden because it's not fully functioning yet.
+  <form id="addTagForm">
+      <input id="menuAddTag" type="text" placeholder="Add tag here" />
+      <input type="submit" value="Add tag!" />
+  </form>
+
+  Tags: <span id="menuTags"></span>
+  -->
+</ul>
+
+</body>
+</html>

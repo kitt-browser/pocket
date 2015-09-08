@@ -1,15 +1,11 @@
-var _ = require('../vendor/underscore/underscore');
-require('../vendor/ionic/ionic.bundle');
-require('../vendor/angular-truncate/angular-truncate');
-require('../vendor/moment/moment');
-require('../vendor/angular-moment/angular-moment');
-require('../vendor/ngAnimate-animate.css/animate');
+var _ = require('underscore');
+require('ionic-framework');
 
-require('../vendor/ionic/css/ionic.css');
+require('../../node_modules/ionic-framework/release/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
 
-var Minilog = require("../../node_modules/minilog");
+var Minilog = require('minilog');
 var common = require('./common');
 
 var log = Minilog('app');
@@ -20,27 +16,44 @@ var state = 'unread';
 
 var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
+function isMobile() {
+  return window.navigator.userAgent.indexOf('Mobile') !== -1;
+}
 window.angular.module('pocket', [
   'ionic',
-  'truncate',
-  'angularMoment',
-  'ngAnimate',
-  'ngAnimate-animate.css'
 ])
 
 .controller('bookmarksCtrl', function($scope, $ionicLoading) {
+  if (!isMobile()) { // for debugging purposes
+    document.body.style.width = '400px';
+    document.body.style.height = '400px';
+  }
+
   var count = 20;
 
   var searchDelayMs = 700;
 
   $scope.bookmarks = [];
   $scope.allResultsFetched = false;
+  $scope.pagePocketed = false;
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
     if (newVal !== oldVal && newVal === []) {
       $scope.allResultsFetched = false;
       $scope.loadNextPage();
     }
+    // Change add button to article view if page has already been pocketed
+    // or back to add button if it has been removed
+    common.getActiveTab().then(function(tab) {
+      var item = _.findWhere($scope.bookmarks, {url: tab.url});
+      if (item && !$scope.pagePocketed) {
+        document.getElementById('add-or-article-view').setAttribute('class', 'button ion-ios7-paper');
+      }
+      else if (!item && $scope.pagePocketed) {
+        document.getElementById('add-or-article-view').setAttribute('class', 'button ion-ios7-plus');
+      }
+      $scope.pagePocketed = !!item;
+    });
   }, true);
 
   $scope.loadNextPage = function() {
@@ -147,7 +160,6 @@ window.angular.module('pocket', [
         count: count,
       })
     }, function(response) {
-      log.debug('reponse', response);
       if ( ! response) {
         window.close();
         return;
@@ -172,15 +184,34 @@ window.angular.module('pocket', [
     });
   };
 
-  $scope.addCurrent = function() {
+  $scope.addCurrentOrArticleView = function() {
     common.getActiveTab().then(function(tab) {
-      chrome.runtime.sendMessage(null, {
-        command: 'addBookmark',
-        url: tab.url
-      }, function() {
-        window.close();
-        $scope.$apply();
-      });
+      if ($scope.pagePocketed) {
+        chrome.runtime.sendMessage(null, {
+          command: 'requestArticleView',
+          url: tab.url
+        }, function(response) {
+          console.log(JSON.stringify(response));
+          common.getActiveTab().then(function(tab) {
+            chrome.tabs.sendMessage(tab.id, {
+              command: 'showArticleView',
+              title: response.title,
+              article: response.article,
+              resolved_id: response.resolved_id
+            });
+            window.close();
+          });
+        });
+      }
+      else {
+        chrome.runtime.sendMessage(null, {
+          command: 'addBookmark',
+          url: tab.url
+        }, function() {
+          window.close();
+          $scope.$apply();
+        });
+      }
     });
   };
 

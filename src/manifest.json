@@ -3,16 +3,27 @@
   "name": "Pocket",
   "description": "The Pocket extension for Kitt makes it easy and convenient to save and retrieve webpages from the popular Pocket service.",
   "version": "1.13.0",
-  "icons": { 
+  "icons": {
     "32": "img/appIcon.png",
     "43": "img/appIconBW.png",
     "128": "img/appIcon.png"
   },
   "background": {
     "scripts": [
-      "js/main.js"
+      "js/background.js"
     ]
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "js/content.js"
+      ]
+    }
+  ],
   "permissions": [
     "tabs",
     "contextMenus",
@@ -27,6 +38,7 @@
   "web_accessible_resources": [
     "img/*",
     "notification.html",
-    "auth.html"
+    "auth.html",
+    "html/articleViewToolbar.html"
   ]
 }

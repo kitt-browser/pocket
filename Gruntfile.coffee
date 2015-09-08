@@ -1,13 +1,13 @@
 module.exports = (grunt) ->
 
   path = require 'path'
-  
+
   # PATH where to store unzipped build
   BUILD = "build"
-  
+
   # PATH where to store final zip
   DIST = "dist"
-  
+
   # Common JS globals
   globals =
     document: false
@@ -22,7 +22,7 @@ module.exports = (grunt) ->
     localStorage: false
     XMLHttpRequest: false
 
-  
+
   # --------------------
   # Load task
   grunt.loadNpmTasks "grunt-contrib-jshint"
@@ -35,7 +35,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-s3'
 
   grunt.initConfig
-  
+
     pkg: grunt.file.readJSON('package.json')
     manifest: grunt.file.readJSON('src/manifest.json')
 
@@ -64,7 +64,9 @@ module.exports = (grunt) ->
         files: [
           {src: 'src/js/bookmarkList.js', dest: "#{BUILD}/js/bookmarkList.js"}
           {src: 'src/js/auth.js', dest: "#{BUILD}/js/auth.js"}
-          {src: 'src/js/main.js', dest: "#{BUILD}/js/main.js"}
+          {src: 'src/js/background.js', dest: "#{BUILD}/js/background.js"}
+          {src: 'src/js/content.js', dest: "#{BUILD}/js/content.js"}
+          {src: 'src/js/articleViewToolbar.js', dest: "#{BUILD}/js/articleViewToolbar.js"}
         ]
         options:
           transform: ['cssify']
@@ -107,7 +109,7 @@ module.exports = (grunt) ->
           },{
             expand: yes
             src: ['fonts/*.*']
-            cwd: 'src/vendor/ionic'
+            cwd: 'node_modules/ionic-framework/release'
             dest: BUILD
           },{
           }
@@ -115,10 +117,12 @@ module.exports = (grunt) ->
     crx:
       main:
         src: ["#{BUILD}/**"]
-        filename: 'pocket.crx'
         dest: DIST
-        baseURL: "http://localhost:8777/" # clueless default
-        privateKey: 'key.pem'
+        options:
+          baseURL: "http://localhost:8777/" # clueless default
+          privateKey: 'key.pem'
+          filename: 'Pocket.crx'
+
 
     s3:
       options:
@@ -138,7 +142,7 @@ module.exports = (grunt) ->
 
   grunt.registerTask "generateCrx", ['crx:main']
 
-  
+
   grunt.registerTask "default", ['jshint', 'clean', 'browserify:dist', 'copy', 'generateCrx']
   grunt.registerTask "dev", ['jshint', 'clean', 'browserify:dev', 'copy', 'generateCrx', 'watch']
 
