@@ -27,6 +27,42 @@
         padding: 0;
         overflow: hidden;
         height: 34px;
+        display: none;
+      }
+
+      .btn-bar ul.active {
+        display: block;
+      }
+
+      .btn-bar .item-input-wrapper {
+        border: 1px solid #157efb;
+        border-radius: 4px;
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        padding: 0 8px;
+        line-height: 34px;
+        height: 34px;
+        position: relative;
+        background: #fff;
+        display: none;
+      }
+
+      .btn-bar .item-input-wrapper input {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        line-height: 34px;
+        height: 34px;
+        left: 0;
+        right: 0;
+        padding: 0 8px 0 30px;
+        -webkit-appearance: none;
+        background: transparent;
+      }
+
+      .btn-bar .item-input-wrapper.active {
+        display: block;
       }
 
       .btn-bar li {
@@ -140,23 +176,35 @@
     </div>
 
     <div class="btn-bar">
+      <!--
+        UI TODO: only ul container or label container should be visible
+        depending on which one of these has "active" class.
+
+        Also ion-ios7-close class on the toggle button should change to
+        ion-ios7-search class when ul container is active.
+      -->
       <ul>
         <li class="active">My List</li>
         <li>Archived</li>
         <li>Favs</li>
       </ul>
-      <button class="button ion-ios7-search"></button>
-    </div>
-
-    <!--<div class="bar bar-header bar-light item-input-inset">
-      <button class="button ion-ios7-close" ng-click="wipeCache()" ng-show="debugMode"></button>
-      <label class="item-input-wrapper">
+      <label class="item-input-wrapper active">
         <i class="icon ion-ios7-search placeholder-icon"></i>
         <input type="search" placeholder="Search" ng-model="searchText">
       </label>
-      <button id="add-or-article-view" class="button ion-ios7-plus" ng-click="addCurrentOrArticleView()"></button>
-    </div>-->
+      <button class="button ion-ios7-close"></button>
+    </div>
 
+    <!-- This can be removed now:
+      <div class="bar bar-header bar-light item-input-inset">
+        <button class="button ion-ios7-close" ng-click="wipeCache()" ng-show="debugMode"></button>
+        <label class="item-input-wrapper">
+          <i class="icon ion-ios7-search placeholder-icon"></i>
+          <input type="search" placeholder="Search" ng-model="searchText">
+        </label>
+        <button id="add-or-article-view" class="button ion-ios7-plus" ng-click="addCurrentOrArticleView()"></button>
+      </div>
+    -->
 
     <ion-content class="has-header">
 
