@@ -9,7 +9,7 @@
       /* items list */
       .btn-bar {
         background: #f8f8f9;
-        padding: 8px 16px;
+        padding: 8px 60px 8px 16px;
         border-bottom: 1px solid #ddd;
         position: absolute;
         top: 59px;
@@ -66,7 +66,7 @@
         color: #444;
         position: relative;
         display: block;
-        padding: 8px 70px 8px 16px;
+        padding: 8px 60px 8px 16px;
         font-size: 16px;
         height: 59px;
       }
@@ -87,7 +87,8 @@
         white-space: nowrap;
       }
 
-      .bar.bar-header.bar-light button.button, ion-item button.button {
+      .bar.bar-header.bar-light button.button, ion-item button.button,
+      .btn-bar button.button {
         position: absolute;
         top: 12px;
         right: 8px;
@@ -106,6 +107,11 @@
         min-height: auto;
       }
 
+      .btn-bar button.button {
+        top: 8px;
+        padding: 0 10px;
+      }
+
       ion-item button.button {
         padding: 0 12px;
       }
@@ -116,7 +122,7 @@
       }
 
       .item-complex .item-content {
-        padding: 8px 70px 8px 16px;
+        padding: 8px 60px 8px 16px;
       }
 
       .item-complex .item-content p {
@@ -139,6 +145,7 @@
         <li>Archived</li>
         <li>Favs</li>
       </ul>
+      <button class="button ion-ios7-search"></button>
     </div>
 
     <!--<div class="bar bar-header bar-light item-input-inset">
