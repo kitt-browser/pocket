@@ -177,22 +177,23 @@
 
     <div class="btn-bar">
       <!--
-        UI TODO: only ul container or label container should be visible
-        depending on which one of these has "active" class.
+        UI TODO: only ul container or search (.item-input-wrapper)
+        container should be visible depending on which one of these
+        has "active" class.
 
-        Also ion-ios7-close class on the toggle button should change to
-        ion-ios7-search class when ul container is active.
+        Also ion-ios7-search class on the toggle button should change to
+        ion-ios7-close class when search container is active.
       -->
-      <ul>
+      <ul class="active">
         <li class="active">My List</li>
         <li>Archived</li>
         <li>Favs</li>
       </ul>
-      <label class="item-input-wrapper active">
+      <label class="item-input-wrapper">
         <i class="icon ion-ios7-search placeholder-icon"></i>
         <input type="search" placeholder="Search" ng-model="searchText">
       </label>
-      <button class="button ion-ios7-close"></button>
+      <button class="button ion-ios7-search"></button>
     </div>
 
     <!-- This can be removed now:
