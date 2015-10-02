@@ -22,6 +22,8 @@ function logging(message) {
 
 logging('THIS WORKS');
 
+var bookmarksManager = require('./bookmarksManager');
+
 var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
 function isMobile() {
@@ -38,6 +40,7 @@ window.angular.module('pocket', [
   }
 
   var searchDelayMs = 700;
+  bookmarksManager.init($scope);
 
   $scope.bookmarks = [];
   $scope.allResultsFetched = false;
@@ -63,7 +66,7 @@ window.angular.module('pocket', [
   }, true);
 
   $scope.loadNextPage = function() {
-    loadBookmarks({}, {}, function() {
+    bookmarksManager.loadBookmarks({}, {cachedRequest: true}, function() {
       $scope.$broadcast('scroll.infiniteScrollComplete');
     });
   };
@@ -84,11 +87,9 @@ window.angular.module('pocket', [
 
   $scope.onRefresh = function() {
     logging('update on refresh!');
-    loadBookmarks({
+    bookmarksManager.loadBookmarks({
       offset: 0,
-      count: null,
-      sort: null,
-      state: null
+      state: 'unread'
     }, {
       updateCache: true
     }, function() {
@@ -99,7 +100,7 @@ window.angular.module('pocket', [
   function freshLoadBookmarks(requestOptions) {
     $scope.bookmarks = [];
     $scope.wipeCache(function() {
-      loadBookmarks(requestOptions, {
+      bookmarksManager.loadBookmarks(requestOptions, {
         updateCache: true
       }, function() {
         //$scope.$apply();
@@ -121,6 +122,14 @@ window.angular.module('pocket', [
     });
   };
 
+  $scope.loadFavoritedBookmarks = function() {
+    freshLoadBookmarks({
+      offset: 0,
+      state: 'unread',
+      favorite: 1
+    });
+  };
+
   $scope.archive = function(event, item) {
     event.preventDefault();
     event.stopPropagation();
@@ -138,84 +147,10 @@ window.angular.module('pocket', [
         return;
       }
       logging('deleted bookmark');
-      $scope.bookmarks = mergeBookmarks($scope.bookmarks, [], [item.id]);
+      $scope.bookmarks = bookmarksManager.mergeBookmarks($scope.bookmarks, [], [item.id]);
       $scope.$apply();
     });
   }
-
-  function mergeBookmarks(bookmarks, updatedBookmarks, removedIds) {
-    // Update/add bookmarks.
-    for (var i=0; i<updatedBookmarks.length; ++i) {
-      var item = _.findWhere(bookmarks, {id: updatedBookmarks[i].id});
-      if (item) {
-        bookmarks[bookmarks.indexOf(item)] = updatedBookmarks[i];
-      } else {
-        bookmarks.push(updatedBookmarks[i]);
-      }
-    }
-
-    // Remove the deleted bookmarks.
-    var removed = _.filter(bookmarks, function(item) {
-      return ~removedIds.indexOf(item.id);
-    });
-
-    bookmarks = _.chain(bookmarks)
-      .difference(removed)
-      // Sort by name and time.updated. It's a stable sort so we sort it two
-      // times to make sure the items won't jump around as they're sorted
-      // (which could happen if we were sorting just by time which is not
-      // unique).
-      .sortBy('id')
-      .sortBy(function(b) {
-        return b.time.updated;
-      })
-      .reverse()
-      .value();
-
-    return bookmarks;
-  }
-
-  var state = 'unread';
-  var loadBookmarks = function(requestOptions, cacheFlags, callback) {
-    callback = callback || function() {};
-
-    state = requestOptions.state || state; // either new state or last state
-
-    logging('---requesting bookmarks', requestOptions, cacheFlags);
-    var defaultedOpts = _.defaults(requestOptions, {
-      sort: 'newest',
-      state: state,
-      search: $scope.searchText,
-      offset: $scope.bookmarks.length,
-      count: 20
-    });
-
-    logging('defaulted options', defaultedOpts);
-
-    chrome.runtime.sendMessage(null, {
-      command: "loadBookmarks",
-      flags: {
-        updateCache: cacheFlags.updateCache || false
-      },
-      opts: defaultedOpts
-    }, function(response) {
-      if ( ! response) {
-        window.close();
-        return;
-      }
-
-      logging('response to bookmark request', response);
-      var bookmarks = response.items || [];
-      var removedIds = response.removed || [];
-
-      $scope.bookmarks = mergeBookmarks($scope.bookmarks, bookmarks, removedIds);
-
-      $scope.allResultsFetched = _.isEmpty(bookmarks);
-      $scope.$apply();
-
-      callback();
-    });
-  };
 
   $scope.bookmarkSelected = function(item) {
     common.getActiveTab().then(function(tab) {
