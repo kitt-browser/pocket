@@ -4,7 +4,6 @@ var _ = require("underscore");
 var moment = require("moment");
 var Minilog = require("minilog");
 var common = require("./common");
-var xhr = require("./xhr");
 var oauth = require("./oauth");
 var constants = require("./constants");
 
@@ -52,7 +51,7 @@ function processItem(item) {
   var realURL = item.resolved_url || item.given_url;
 
   // If neither resolved or given URL the item isn't worthwhile showing
-  if ( ! realURL || item.status > 0) {
+  if ( ! realURL || item.status > 1) {
     return null;
   }
 
@@ -97,9 +96,13 @@ function loadCache(flags, opts) {
 
       log.debug('Cache loaded');
 
-      if ( ! flags.updateCache && ! opts.search && ! _.isEmpty(bookmarks) &&
-          bookmarks.length > opts.offset) {
-        // Load bookmarks from cache.
+      var shouldUpdateCache = flags.updateCache || opts.search || _.isEmpty(bookmarks) ||
+        bookmarks.length <= opts.offset;
+
+      if (shouldUpdateCache) {
+        log.debug("Will load bookmarks from server...");
+        return {cache: itemsCache, items: null};
+      } else {
         var bookmarksByUpdateTime = _.chain(bookmarks)
           // Sort by something unique first to ensure stability.
           .sortBy('id')
@@ -109,16 +112,11 @@ function loadCache(flags, opts) {
           })
           .reverse()
           .value();
+
         var result = bookmarksByUpdateTime.slice(opts.offset, opts.offset + opts.count);
-
         log.debug("Loaded bookmarks from cache");
-
         return {cache: itemsCache, items: result};
       }
-
-      log.debug("Will load bookmarks from server...");
-
-      return {cache: itemsCache, items: null};
     });
 }
 
@@ -133,7 +131,7 @@ function loadBookmarksFromServer(opts, cache) {
       detailType: 'complete'
     }, opts);
 
-    if ( opts.search || opts.offset ) {
+    if ( opts.search || opts.hasOwnProperty('offset')) {
       // Don't use `since` parameter, we're not interested only in changes.
       return params;
     }
@@ -150,18 +148,24 @@ function loadBookmarksFromServer(opts, cache) {
   })
 
   .then(function(params) {
-    return post(constants.pocket_api_endpoint + '/get', JSON.stringify(params));
+    var url = constants.pocket_api_endpoint + '/get';
+    log.debug('******request url and params', url, params);
+    return post(url, JSON.stringify(params));
   })
 
   .then(function(response) {
     var list = response.list;
+      log.debug('***all retrieved items(1)', list);
+
     var items = _.compact(_.map(list, processItem));
 
     var removedIds = _.chain(list)
       .values()
       .filter(function(item) {
         // Only return archived and read items.
-        return (item.status > 0);
+        var status = parseInt(item.status);
+        log.debug('**', status, typeof status);
+        return  status > 0; // TODO from zero originally
       })
       .pluck('item_id')
       .value();
@@ -178,7 +182,9 @@ function loadBookmarksFromServer(opts, cache) {
       cache[item.id] = item;
     });
 
-    // Return a promise to store items and timestamp in the cache.
+    log.debug('***all retrieved ITEMS(2)', items);
+
+      // Return a promise to store items and timestamp in the cache.
     var allSaved = [
       common.saveToStorage('items', cache)
     ];
@@ -377,8 +383,9 @@ $(function() {
         return true;
 
       case 'echo':
-        console.log('echoed message: ', JSON.stringify(request));
-        sendResponse({rest_response: JSON.stringify(request)});
+        var message = request.message;
+        log.debug('echoed message: ', message);
+        sendResponse({rest_response: JSON.stringify(message)});
         return true;
 
       default:

@@ -20,8 +20,14 @@
 
 
     <ion-content class="has-header">
-
       <ion-refresher on-refresh="onRefresh()"></ion-refresher>
+
+      <p>
+        <a id="my-items" ng-click="loadUnreadBookmarks()">My items</a> | <!-- TODO Hope that is the right callback -->
+        <a id="archived-items" ng-click="loadArchivedBookmarks()">Archived</a> |
+        <a id="favorited-items"> Favorited </a>
+      </p>
+
 
       <ion-list class="list" can-swipe="true">
 

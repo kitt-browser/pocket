@@ -11,8 +11,16 @@ var common = require('./common');
 var log = Minilog('app');
 Minilog.enable();
 
-var sort = 'newest';
-var state = 'unread';
+function logging(message) {
+  chrome.runtime.sendMessage(null, {
+    command: "echo",
+    message: message
+  }, function(response) {
+    log.debug(message); // in fact it logs into popup window console. which is inconvenient to open....
+  });
+}
+
+logging('THIS WORKS');
 
 var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
@@ -20,7 +28,7 @@ function isMobile() {
   return window.navigator.userAgent.indexOf('Mobile') !== -1;
 }
 window.angular.module('pocket', [
-  'ionic',
+  'ionic'
 ])
 
 .controller('bookmarksCtrl', function($scope, $ionicLoading) {
@@ -28,8 +36,6 @@ window.angular.module('pocket', [
     document.body.style.width = '400px';
     document.body.style.height = '400px';
   }
-
-  var count = 20;
 
   var searchDelayMs = 700;
 
@@ -39,8 +45,8 @@ window.angular.module('pocket', [
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
     if (newVal !== oldVal && newVal === []) {
-      $scope.allResultsFetched = false;
-      $scope.loadNextPage();
+      //$scope.allResultsFetched = false; // TODO
+      //$scope.loadNextPage();
     }
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
@@ -77,7 +83,7 @@ window.angular.module('pocket', [
   });
 
   $scope.onRefresh = function() {
-    log.debug('update on refresh!');
+    logging('update on refresh!');
     loadBookmarks({
       offset: 0,
       count: null,
@@ -87,6 +93,31 @@ window.angular.module('pocket', [
       updateCache: true
     }, function() {
         $scope.$broadcast('scroll.refreshComplete');
+    });
+  };
+
+  function freshLoadBookmarks(requestOptions) {
+    $scope.bookmarks = [];
+    $scope.wipeCache(function() {
+      loadBookmarks(requestOptions, {
+        updateCache: true
+      }, function() {
+        //$scope.$apply();
+      });
+    });
+  }
+
+  $scope.loadArchivedBookmarks = function() {
+    freshLoadBookmarks({
+      offset: 0,
+      state: 'archive'
+    });
+  };
+
+  $scope.loadUnreadBookmarks = function() {
+    freshLoadBookmarks({
+      offset: 0,
+      state: 'unread'
     });
   };
 
@@ -103,10 +134,10 @@ window.angular.module('pocket', [
       id: item.id
     }, function(response) {
       if (response && response.error) {
-        log.error('deleting bookmarks', response.error);
+        logging.error('deleting bookmarks', response.error);
         return;
       }
-      log.debug('deleted bookmark');
+      logging('deleted bookmark');
       $scope.bookmarks = mergeBookmarks($scope.bookmarks, [], [item.id]);
       $scope.$apply();
     });
@@ -144,26 +175,36 @@ window.angular.module('pocket', [
     return bookmarks;
   }
 
+  var state = 'unread';
+  var loadBookmarks = function(requestOptions, cacheFlags, callback) {
+    callback = callback || function() {};
 
-  var loadBookmarks = function(opts, flags, callback) {
-    log.debug('requesting bookmarks');
+    state = requestOptions.state || state; // either new state or last state
+
+    logging('---requesting bookmarks', requestOptions, cacheFlags);
+    var defaultedOpts = _.defaults(requestOptions, {
+      sort: 'newest',
+      state: state,
+      search: $scope.searchText,
+      offset: $scope.bookmarks.length,
+      count: 20
+    });
+
+    logging('defaulted options', defaultedOpts);
+
     chrome.runtime.sendMessage(null, {
       command: "loadBookmarks",
       flags: {
-        updateCache: flags.updateCache || false
+        updateCache: cacheFlags.updateCache || false
       },
-      opts: _.defaults(opts, {
-        sort: sort,
-        state: state,
-        search: $scope.searchText,
-        offset: $scope.bookmarks.length,
-        count: count,
-      })
+      opts: defaultedOpts
     }, function(response) {
       if ( ! response) {
         window.close();
         return;
       }
+
+      logging('response to bookmark request', response);
       var bookmarks = response.items || [];
       var removedIds = response.removed || [];
 
@@ -178,7 +219,7 @@ window.angular.module('pocket', [
 
   $scope.bookmarkSelected = function(item) {
     common.getActiveTab().then(function(tab) {
-      chrome.tabs.update(tab.id, {url:item.url}, function(){
+      chrome.tabs.update(tab.id, {url:item.url}, function() {
         window.close();
       });
     });
@@ -215,10 +256,10 @@ window.angular.module('pocket', [
     });
   };
 
-  $scope.wipeCache = function() {
+  $scope.wipeCache = function(callback) {
     chrome.runtime.sendMessage(null, {
       command: "wipeBookmarkCache"
-    });
+    }, callback);
   };
 
 });
