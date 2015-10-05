@@ -25,7 +25,6 @@ function generateAction(actionName, itemId, properties) {
   return _.extend(action, properties);
 }
 
-
 function sendAction(action) {
   chrome.runtime.sendMessage(null, {
     command: 'modifyBookmark',
