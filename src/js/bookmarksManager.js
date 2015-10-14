@@ -206,6 +206,18 @@ class SearchBookmarksManager extends BaseBookmarksManager {
     return Promise.resolve({});
   }
 }
+
+class FavoriteBookmarksManager extends BaseBookmarksManager {
+  constructor() {
+    super({state: 'all', favorite: 1});
+  }
+}
+
+// !!!! ****** CACHE IFF REFRESHABLE TODO TODO TODO TODO
+
+
+
+
 /////// test
 //let myBookmarks = [];//...
 //let panel = new ArchivedBookmarksPanel();
@@ -266,6 +278,7 @@ module.exports = {
   CachedBookmarksManager,
   BaseBookmarksManager,
 
+  FavoriteBookmarksManager,
   SearchBookmarksManager,
   AllItemsBookmarksManager,
   ArchivedBookmarksManager

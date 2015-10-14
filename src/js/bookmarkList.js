@@ -8,13 +8,11 @@ require('../css/pocket.css');
 let bookmarksManager = require('./bookmarksManager');
 let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
 let defaultBookmarksManager = new bookmarksManager.AllItemsBookmarksManager();
-
 let currentBookmarksManager;
 
-
-var Minilog = require('minilog');
 var common = require('./common');
 
+var Minilog = require('minilog');
 var log = Minilog('app');
 Minilog.enable();
 
@@ -34,11 +32,8 @@ function logging(message) {
 
 }
 
-logging('THIS WORKS');
 
 var bookmarksManager2 = require('./bookmarksManager2');
-
-var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
 
 
 function isMobile() {
@@ -60,12 +55,20 @@ window.angular.module('pocket', [
   $scope.allResultsFetched = false;
   $scope.pagePocketed = false;
 
+
   // parameters used with bookmarksManager
   let offset = 0;
   let count = 2;
 
 
   currentBookmarksManager = defaultBookmarksManager;
+
+
+  function freshLoadBookmarksManager(bookmarksManagerInstance) {
+    $scope.bookmarks = [];
+    currentBookmarksManager = bookmarksManagerInstance;
+    $scope.loadFirstPage();
+  }
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
     if (newVal !== oldVal && newVal === []) {
@@ -75,6 +78,8 @@ window.angular.module('pocket', [
 
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
+    // FIXME bug - searches only through $scope.bookmarks, which comprises not necessarily
+    // of all bookmarks
     common.getActiveTab().then(function(tab) {
       var item = _.findWhere($scope.bookmarks, {url: tab.url});
       if (item && !$scope.pagePocketed) {
@@ -109,19 +114,13 @@ window.angular.module('pocket', [
 
   let searchDelayMs = 700;
   $scope.$watch('searchText', _.debounce(function(newVal, oldVal) {
-    $scope.bookmarks = [];
-
     if(newVal !== oldVal) {
       if (!_.isEmpty(newVal)) {
-        currentBookmarksManager = new bookmarksManager.SearchBookmarksManager(newVal);
+        freshLoadBookmarksManager(new bookmarksManager.SearchBookmarksManager(newVal));
       } else {
-        currentBookmarksManager = defaultBookmarksManager;
-        logging('back to default');
+        freshLoadBookmarksManager(defaultBookmarksManager);
       }
     }
-
-    $scope.loadFirstPage();
-
   }, searchDelayMs));
 
   $scope.onRefresh = function() {
@@ -136,37 +135,16 @@ window.angular.module('pocket', [
     });
   };
 
-  function freshLoadBookmarks(requestOptions) {
-    $scope.bookmarks = [];
-    $scope.wipeCache(function() {
-      bookmarksManager2.loadBookmarks(requestOptions, {
-        updateCache: true
-      }, function() {
-        //$scope.$apply();
-      });
-    });
-  }
-
   $scope.loadArchivedBookmarks = function() {
-    freshLoadBookmarks({
-      offset: 0,
-      state: 'archive'
-    });
+    freshLoadBookmarksManager(new bookmarksManager.ArchivedBookmarksManager());
   };
 
   $scope.loadUnreadBookmarks = function() {
-    freshLoadBookmarks({
-      offset: 0,
-      state: 'unread'
-    });
+    freshLoadBookmarksManager(defaultBookmarksManager);
   };
 
   $scope.loadFavoritedBookmarks = function() {
-    freshLoadBookmarks({
-      offset: 0,
-      state: 'unread',
-      favorite: 1
-    });
+    freshLoadBookmarksManager(new bookmarksManager.FavoriteBookmarksManager());
   };
 
   $scope.archive = function(event, item) {
