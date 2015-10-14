@@ -43,6 +43,7 @@
     "babelify": "^6.3.0",
     "ionic-framework": "~1.0.0-beta.13",
     "jquery": "^2.1.4",
+    "lodash": "^3.10.1",
     "minilog": "^2.0.4",
     "moment": "^2.10.3",
     "q": "^1.4.1",

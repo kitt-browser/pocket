@@ -21,6 +21,8 @@ function post(url, data) {
   return makeRequest(url, 'POST', data);
 }
 
+
+
 function makeRequest(url, method, data) {
   if (_.isString(data)) {
     data = JSON.parse(data);
@@ -78,7 +80,7 @@ function processItem(item) {
       favorited: moment.unix(item.time_favorited)
     },
     favorite: (parseInt(item.favorite) === 1),
-    tags: tags,
+    tags: tags
     //status: parseInt(item.status)
   };
 }
@@ -123,7 +125,7 @@ function loadCache(flags, opts) {
 
 function loadBookmarksFromServer(opts, cache) {
   log.debug('loading bookmarks from Pocket server.');
-
+  // TODO copied this whole chunk
   return oauth.getOauthAccessToken().then(function(token) {
     var params = _.extend({
       consumer_key: constants.consumerKey,
@@ -386,6 +388,19 @@ $(function() {
         var message = request.message;
         log.debug('echoed message: ', message);
         sendResponse({rest_response: JSON.stringify(message)});
+        return true;
+
+      // low-level cornerstone of the app -> the only function, used by bookmark class
+      case 'sendAuthorizedPostRequest':
+        oauth.getOauthAccessToken().then(function(token) {
+          var params = _.extend({
+            consumer_key: constants.consumerKey,
+            access_token: token,
+            detailType: 'complete'
+          }, request.data);
+          console.log('!!!',request.url, params);
+          return post(request.url, params).then(response => sendResponse(response));
+        }).done();
         return true;
 
       default:

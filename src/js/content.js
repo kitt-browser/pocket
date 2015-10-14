@@ -12,3 +12,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       request.resolved_id );
   }
 });
+
+// TODO for debugging purposes
+window.bookmarksManager = require('./bookmarksManager');
+

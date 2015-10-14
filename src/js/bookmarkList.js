@@ -5,6 +5,11 @@ require('../../node_modules/ionic-framework/release/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
 
+let bookmarksManager = require('./bookmarksManager');
+let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
+let currentBookmarksManager;
+
+
 var Minilog = require('minilog');
 var common = require('./common');
 
@@ -22,29 +27,37 @@ function logging(message) {
 
 logging('THIS WORKS');
 
-var bookmarksManager = require('./bookmarksManager');
+var bookmarksManager2 = require('./bookmarksManager2');
 
 var CLEAN_CACHE_SEARCH_STRING = 'salsa:ccache';
+
 
 function isMobile() {
   return window.navigator.userAgent.indexOf('Mobile') !== -1;
 }
+
+
 window.angular.module('pocket', [
   'ionic'
-])
-
-.controller('bookmarksCtrl', function($scope, $ionicLoading) {
+]).controller('bookmarksCtrl', function($scope, $ionicLoading) {
   if (!isMobile()) { // for debugging purposes
     document.body.style.width = '400px';
     document.body.style.height = '400px';
   }
 
   var searchDelayMs = 700;
-  bookmarksManager.init($scope);
+  bookmarksManager2.init($scope);
 
   $scope.bookmarks = [];
   $scope.allResultsFetched = false;
   $scope.pagePocketed = false;
+
+  // parameters used with bookmarksManager
+  let offset = 0;
+  let count = 2;
+
+
+  currentBookmarksManager = new bookmarksManager.AllItemsBookmarksManager();
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
     if (newVal !== oldVal && newVal === []) {
@@ -66,9 +79,21 @@ window.angular.module('pocket', [
   }, true);
 
   $scope.loadNextPage = function() {
-    bookmarksManager.loadBookmarks({}, {cachedRequest: true}, function() {
-      $scope.$broadcast('scroll.infiniteScrollComplete');
-    });
+    currentBookmarksManager.getBookmarksList(offset, count)
+      .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
+      .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
+      .then(bookmarks => {
+        let processedBookmarks = bookmarks.map(bookmarksTransformer.processItem);
+        $scope.bookmarks = $scope.bookmarks.concat(processedBookmarks); // TODO further refactor
+        $scope.allResultsFetched = _.isEmpty(bookmarks);
+        $scope.$apply();
+        $scope.$broadcast('scroll.infiniteScrollComplete');
+        offset += bookmarks.length;
+      });
+
+//    bookmarksManager2.loadBookmarks({}, {cachedRequest: true}, function() {
+//      $scope.$broadcast('scroll.infiniteScrollComplete');
+//    });
   };
 
   var onSearch = _.debounce(function() {
@@ -87,7 +112,7 @@ window.angular.module('pocket', [
 
   $scope.onRefresh = function() {
     logging('update on refresh!');
-    bookmarksManager.loadBookmarks({
+    bookmarksManager2.loadBookmarks({
       offset: 0,
       state: 'unread'
     }, {
@@ -100,7 +125,7 @@ window.angular.module('pocket', [
   function freshLoadBookmarks(requestOptions) {
     $scope.bookmarks = [];
     $scope.wipeCache(function() {
-      bookmarksManager.loadBookmarks(requestOptions, {
+      bookmarksManager2.loadBookmarks(requestOptions, {
         updateCache: true
       }, function() {
         //$scope.$apply();
@@ -147,7 +172,7 @@ window.angular.module('pocket', [
         return;
       }
       logging('deleted bookmark');
-      $scope.bookmarks = bookmarksManager.mergeBookmarks($scope.bookmarks, [], [item.id]);
+      $scope.bookmarks = bookmarksManager2.mergeBookmarks($scope.bookmarks, [], [item.id]);
       $scope.$apply();
     });
   }
