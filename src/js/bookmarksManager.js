@@ -108,6 +108,8 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
       throw new Error('Need to pass original config');
     }
     this.baseRequest = baseRequest;
+    this.baseRequest.detailType = 'complete';
+
 
     this.since = 0; // TODO it's incorrectly initialized
   }
@@ -234,16 +236,11 @@ class FavoriteBookmarksManager extends BaseBookmarksManager {
 //panel.getRefreshUpdates(since).then(updates=> {
 //  myBookmarks = panel.merger(myBookmarks, nextPageBookmarks); // idea: special merger should be used only with refresher
 //});
-
 //either way i must use some caching at least for the new itens.
-
-
 // !idea -> MergerPanel extends BasePanel -> adds updateWith.... -> makes syntactic sugar + handles cache
 // + handles offset,...
 // do I need cache at all? don't think so..
-
 //panel.updateWithRefresh(myBookmarks); // output arguments
-
 // what f merger DID NOT belong to the class? (was purely static?)
 //myBookmarks = ArchivedBookmarksPanel.merger() //--> should not work - EXA said so!!!!
 // static hierarchy calling should not work anywhere... bcs merger calls shouldBeDeleted
