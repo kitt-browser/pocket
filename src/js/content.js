@@ -10,6 +10,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     document.body.innerHTML += '<h1 style=\"padding: 15px; background: #ededf3; font-size: 20px; border-bottom: 1px solid #c8c7cc; color: #333; margin: 0; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif \">' + request.title + '</h1>' + request.article;
     document.body.innerHTML += createToolbarIframe(chrome.extension.getURL('html/articleViewToolbar.html'),
       request.resolved_id );
+  } else if (request.command === 'echoContentScript') {
+    console.log('(echo command)', request.message);
   }
 });
 

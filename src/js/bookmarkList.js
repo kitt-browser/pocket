@@ -1,4 +1,4 @@
-var _ = require('underscore');
+var _ = require('lodash');
 require('ionic-framework');
 
 require('../../node_modules/ionic-framework/release/css/ionic.css');
@@ -7,6 +7,8 @@ require('../css/pocket.css');
 
 let bookmarksManager = require('./bookmarksManager');
 let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
+let defaultBookmarksManager = new bookmarksManager.AllItemsBookmarksManager();
+
 let currentBookmarksManager;
 
 
@@ -17,12 +19,19 @@ var log = Minilog('app');
 Minilog.enable();
 
 function logging(message) {
-  chrome.runtime.sendMessage(null, {
+  let messageJson = {
     command: "echo",
     message: message
-  }, function(response) {
+  };
+
+  chrome.runtime.sendMessage(null, messageJson, function(response) {
     log.debug(message); // in fact it logs into popup window console. which is inconvenient to open....
   });
+
+  common.getActiveTab().then(tab => {
+    chrome.runtime.sendMessage(tab.id, {command: 'echoContentScript', message: message});
+  });
+
 }
 
 logging('THIS WORKS');
@@ -45,7 +54,6 @@ window.angular.module('pocket', [
     document.body.style.height = '400px';
   }
 
-  var searchDelayMs = 700;
   bookmarksManager2.init($scope);
 
   $scope.bookmarks = [];
@@ -57,13 +65,14 @@ window.angular.module('pocket', [
   let count = 2;
 
 
-  currentBookmarksManager = new bookmarksManager.AllItemsBookmarksManager();
+  currentBookmarksManager = defaultBookmarksManager;
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
     if (newVal !== oldVal && newVal === []) {
-      //$scope.allResultsFetched = false; // TODO
-      //$scope.loadNextPage();
+      $scope.allResultsFetched = false;
+      $scope.loadNextPage();
     }
+
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
     common.getActiveTab().then(function(tab) {
@@ -79,36 +88,41 @@ window.angular.module('pocket', [
   }, true);
 
   $scope.loadNextPage = function() {
+    logging('$scope.loadNextPage');
     currentBookmarksManager.getBookmarksList(offset, count)
       .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
       .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
       .then(bookmarks => {
-        let processedBookmarks = bookmarks.map(bookmarksTransformer.processItem);
-        $scope.bookmarks = $scope.bookmarks.concat(processedBookmarks); // TODO further refactor
+        let processedBookmarks = bookmarks.map(bookmarksTransformer.processItem); // TODO further refactor
+        $scope.bookmarks = $scope.bookmarks.concat(processedBookmarks);
         $scope.allResultsFetched = _.isEmpty(bookmarks);
         $scope.$apply();
         $scope.$broadcast('scroll.infiniteScrollComplete');
         offset += bookmarks.length;
       });
-
-//    bookmarksManager2.loadBookmarks({}, {cachedRequest: true}, function() {
-//      $scope.$broadcast('scroll.infiniteScrollComplete');
-//    });
   };
 
-  var onSearch = _.debounce(function() {
-    $scope.bookmarks = [];
+  $scope.loadFirstPage = function() { // if something in the cache, else...
+    offset = 0;
     $scope.loadNextPage();
-  }, searchDelayMs);
+  };
 
-  $scope.$watch('searchText', function(newVal, oldVal) {
-    if (newVal !== oldVal) {
-      onSearch();
+  let searchDelayMs = 700;
+  $scope.$watch('searchText', _.debounce(function(newVal, oldVal) {
+    $scope.bookmarks = [];
+
+    if(newVal !== oldVal) {
+      if (!_.isEmpty(newVal)) {
+        currentBookmarksManager = new bookmarksManager.SearchBookmarksManager(newVal);
+      } else {
+        currentBookmarksManager = defaultBookmarksManager;
+        logging('back to default');
+      }
     }
-    if (newVal === CLEAN_CACHE_SEARCH_STRING) {
-      $scope.wipeCache();
-    }
-  });
+
+    $scope.loadFirstPage();
+
+  }, searchDelayMs));
 
   $scope.onRefresh = function() {
     logging('update on refresh!');

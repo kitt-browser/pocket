@@ -196,6 +196,16 @@ class AllItemsBookmarksManager extends BaseBookmarksManager {
   }
 }
 
+class SearchBookmarksManager extends BaseBookmarksManager {
+  constructor(searchPhrase) {
+    super({state: 'all', search: searchPhrase});
+  }
+
+  // Violates the Liskov substitution principle, but I have no better idea so far...
+  getRefreshUpdates() {
+    return Promise.resolve({});
+  }
+}
 /////// test
 //let myBookmarks = [];//...
 //let panel = new ArchivedBookmarksPanel();
@@ -256,6 +266,7 @@ module.exports = {
   CachedBookmarksManager,
   BaseBookmarksManager,
 
+  SearchBookmarksManager,
   AllItemsBookmarksManager,
   ArchivedBookmarksManager
 };
