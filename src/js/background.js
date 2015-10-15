@@ -396,7 +396,6 @@ $(function() {
             consumer_key: constants.consumerKey,
             access_token: token,
           }, request.data);
-          console.log('!!!',request.url, params);
           return post(request.url, params).then(response => sendResponse(response));
         }).done();
         return true;

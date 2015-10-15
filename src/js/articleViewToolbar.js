@@ -12,7 +12,7 @@ function getParameterByName(name) {
     results = regex.exec(window.location.search);
   return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
-var _ = require('underscore');
+var _ = require('lodash');
 var $ = require('jquery');
 
 function generateAction(actionName, itemId, properties) {

@@ -6,6 +6,7 @@
 'use strict';
 let _ = require('lodash');
 let constants = require("./constants");
+let common = require('./common');
 
 /**
  * Wrapper around ordinary request. Sends request with prefilled access token.
@@ -57,7 +58,6 @@ class BookmarksTransformer {
       return null;
     }
 
-    var id = item.item_id;
     // Regular expression to parse out the domain name of the URL, or an empty string if something fails
     var domain = realURL.match(/^((http[s]?|ftp):\/)?\/?([^:\/\s]+)(:([^\/]*))?/i)[3] || '';
     // Fetches a icon from a great webservice which provides a default fallback icon
@@ -67,7 +67,7 @@ class BookmarksTransformer {
 
     // Create a data object and push it to the items array
     return { // future TODO: Do not create separate object, only edit the fields in |item|.
-      id: id,
+      item_id: item.item_id,
       url: realURL,
       title: item.resolved_title || item.given_title,
       excerpt: item.excerpt,
@@ -124,12 +124,42 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
       });
   }
 
+  /**
+   * Try to load at least |count| items.
+   * @param offset
+   * @param count
+   * @returns {*}
+   */
   getBookmarksList(offset, count) {
     let newRequest = _.clone(this.baseRequest);
     newRequest = _.extend(newRequest, {count: count, offset: offset});
     return this._retrieveBookmarksListWithUpdatedSince(newRequest, !this.since); // when there is SINCE, do not update. on first try do update
   }
 
+  getRefreshUpdates(/*since*/) {
+    // basic implementation doesn't cache anything, so no need to refresh stuff
+    return Promise.resolve({});
+  }
+}
+
+
+
+class CachedBookmarksManager extends BookmarksManagerInterface {
+  constructor(bookmarksManager) {
+    super();
+
+    this.bookmarksManager = bookmarksManager;
+
+    let cachePrefix = 'cache_'+bookmarksManager.constructor.name.toString();
+    this.cacheTimestamp = cachePrefix + '_timestamp';
+    this.cacheKey = cachePrefix + '_items';
+  }
+
+  getBookmarksList(offset, count) {
+    if (offset === 0) {
+
+    }
+  }
   /**
    * Loads all the refresh updates. Requires that getBookmarks be called before. (thus this.since be set)
    * @returns {*}
@@ -171,49 +201,16 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
       bookmarksList[itemId] = updatedBookmark;
     });
   }
+
 }
 
+let ArchivedBookmarksManager = new BaseBookmarksManager({state: 'archive'});
+let AllItemsBookmarksManager = new BaseBookmarksManager({state: 'unread'});
+let FavoriteBookmarksManager= new BaseBookmarksManager({state: 'all', favorite: 1});
 
-
-class CachedBookmarksManager extends BaseBookmarksManager {
-}
-
-class ArchivedBookmarksManager extends BaseBookmarksManager {
-  constructor() {
-    super({state: 'archive'});
-  }
-
-  shouldBeDeleted(bookmark) {
-    return parseInt(bookmark.status) !== 1; // if a bookmark is other than ARCHIVED
-  }
-}
-
-class AllItemsBookmarksManager extends BaseBookmarksManager {
-  constructor() {
-    super({state: 'unread'});
-  }
-
-  shouldBeDeleted(bookmark) {
-    return parseInt(bookmark.status) > 1; // either marked as 'archived', or 'to delete'
-  }
-}
-
-class SearchBookmarksManager extends BaseBookmarksManager {
-  constructor(searchPhrase) {
-    super({state: 'all', search: searchPhrase});
-  }
-
-  // Violates the Liskov substitution principle, but I have no better idea so far...
-  getRefreshUpdates() {
-    return Promise.resolve({});
-  }
-}
-
-class FavoriteBookmarksManager extends BaseBookmarksManager {
-  constructor() {
-    super({state: 'all', favorite: 1});
-  }
-}
+let SearchBookmarksManagerFactory = function(searchPhrase) {
+  return new BaseBookmarksManager({state: 'unread', search:searchPhrase});
+};
 
 // !!!! ****** CACHE IFF REFRESHABLE TODO TODO TODO TODO
 
@@ -276,7 +273,7 @@ module.exports = {
   BaseBookmarksManager,
 
   FavoriteBookmarksManager,
-  SearchBookmarksManager,
+  SearchBookmarksManagerFactory,
   AllItemsBookmarksManager,
   ArchivedBookmarksManager
 };

@@ -7,7 +7,7 @@ require('../css/pocket.css');
 
 let bookmarksManager = require('./bookmarksManager');
 let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
-let defaultBookmarksManager = new bookmarksManager.AllItemsBookmarksManager();
+let defaultBookmarksManager = bookmarksManager.AllItemsBookmarksManager;
 let currentBookmarksManager;
 
 var common = require('./common');
@@ -29,12 +29,7 @@ function logging(message) {
   common.getActiveTab().then(tab => {
     chrome.runtime.sendMessage(tab.id, {command: 'echoContentScript', message: message});
   });
-
 }
-
-
-var bookmarksManager2 = require('./bookmarksManager2');
-
 
 function isMobile() {
   return window.navigator.userAgent.indexOf('Mobile') !== -1;
@@ -48,8 +43,6 @@ window.angular.module('pocket', [
     document.body.style.width = '400px';
     document.body.style.height = '400px';
   }
-
-  bookmarksManager2.init($scope);
 
   $scope.bookmarks = [];
   $scope.allResultsFetched = false;
@@ -116,7 +109,7 @@ window.angular.module('pocket', [
   $scope.$watch('searchText', _.debounce(function(newVal, oldVal) {
     if(newVal !== oldVal) {
       if (!_.isEmpty(newVal)) {
-        freshLoadBookmarksManager(new bookmarksManager.SearchBookmarksManager(newVal));
+        freshLoadBookmarksManager(bookmarksManager.SearchBookmarksManagerFactory(newVal));
       } else {
         freshLoadBookmarksManager(defaultBookmarksManager);
       }
@@ -124,19 +117,12 @@ window.angular.module('pocket', [
   }, searchDelayMs));
 
   $scope.onRefresh = function() {
-    logging('update on refresh!');
-    bookmarksManager2.loadBookmarks({
-      offset: 0,
-      state: 'unread'
-    }, {
-      updateCache: true
-    }, function() {
-        $scope.$broadcast('scroll.refreshComplete');
-    });
+    // TODO refresh
+    $scope.$broadcast('scroll.refreshComplete');
   };
 
   $scope.loadArchivedBookmarks = function() {
-    freshLoadBookmarksManager(new bookmarksManager.ArchivedBookmarksManager());
+    freshLoadBookmarksManager(bookmarksManager.ArchivedBookmarksManager);
   };
 
   $scope.loadUnreadBookmarks = function() {
@@ -144,7 +130,7 @@ window.angular.module('pocket', [
   };
 
   $scope.loadFavoritedBookmarks = function() {
-    freshLoadBookmarksManager(new bookmarksManager.FavoriteBookmarksManager());
+    freshLoadBookmarksManager(bookmarksManager.FavoriteBookmarksManager);
   };
 
   $scope.archive = function(event, item) {
@@ -164,7 +150,7 @@ window.angular.module('pocket', [
         return;
       }
       logging('deleted bookmark');
-      $scope.bookmarks = bookmarksManager2.mergeBookmarks($scope.bookmarks, [], [item.id]);
+      $scope.bookmarks.splice(_.findKey($scope.bookmarks), b => b.item_id == item.id, 1);
       $scope.$apply();
     });
   }
