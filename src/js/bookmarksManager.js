@@ -110,30 +110,24 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
     this.baseRequest = baseRequest;
     this.baseRequest.detailType = 'complete';
 
-
-    this.since = 0; // TODO it's incorrectly initialized
+    this.offset = 0; // offset at which se send the following request
   }
 
-  _retrieveBookmarksListWithUpdatedSince(requestParameters, shouldUpdateSince) {
-    return request(this.getEndpoint, requestParameters)
-      .then((response) => {
-        if (shouldUpdateSince) { // TODO needs refactoring. When loading next page, ti doesnt update new items, so no need for since update
-          this.since = response.since; // used only for refresh
-        }
-        return response.list;
-      });
+  request(additionalParams) {
+    let requestParams = _.extend( _.clone(this.baseRequest), additionalParams);
+    return request(this.getEndpoint, requestParams);
   }
 
   /**
    * Try to load at least |count| items.
-   * @param offset
-   * @param count
+   * @param count try to get |count new bookmarks|
    * @returns {*}
    */
-  getBookmarksList(offset, count) {
-    let newRequest = _.clone(this.baseRequest);
-    newRequest = _.extend(newRequest, {count: count, offset: offset});
-    return this._retrieveBookmarksListWithUpdatedSince(newRequest, !this.since); // when there is SINCE, do not update. on first try do update
+  getBookmarksList(count) {
+    return this.request({count: count, offset: this.offset}).then(response => {
+      this.offset += _.size(response.list);
+      return response.list;
+    });
   }
 
   getRefreshUpdates(/*since*/) {
@@ -142,24 +136,45 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
   }
 }
 
-
-
 class CachedBookmarksManager extends BookmarksManagerInterface {
   constructor(bookmarksManager) {
     super();
 
     this.bookmarksManager = bookmarksManager;
 
-    let cachePrefix = 'cache_'+bookmarksManager.constructor.name.toString();
-    this.cacheTimestamp = cachePrefix + '_timestamp';
-    this.cacheKey = cachePrefix + '_items';
+    let cachePrefix = 'cache_'+bookmarksManager.constructor.name.toString(); // FIXME everything comes from the same class, be it all/archive/unread/...!!!
+    this.cacheTimestampKey = cachePrefix + '_timestamp';
+    this.cacheItemsKey = cachePrefix + '_items';
   }
 
-  getBookmarksList(offset, count) {
-    if (offset === 0) {
-
-    }
+  getBookmarksList(count) {
+    common.getFromStorage(this.cacheItemsKey).then(items => {
+      if (items) { // TODO rethink -
+        // load since last |since| and merge into cache
+        common.getFromStorage(this.cacheTimestampKey).then(timestamp => {
+          return this.bookmarksManager.request({since: timestamp});
+        }).then(updateResponse => {
+          let updatedSince = updateResponse.since;
+          let listOfUpdates = updateResponse.list;
+          return common.saveToStorage(this.cacheTimestampKey, updatedSince)
+            .then(() => common.getFromStorage(this.cacheItemsKey))
+            .then(items => this.merger(items, listOfUpdates));
+        }).then(newBookmarks => { // TODO optimization opportunity: return merged and save back as promise
+              return this.bookmarksManager.request({offset: _.size(newBookmarks), count: count})
+                .then(newItemsResponse =>  this.merger(newBookmarks, newItemsResponse.list));
+        }).then(newBookmarks =>common.saveToStorage(this.cacheItemsKey, newBookmarks))
+          .then(() => common.getFromStorage(this.cacheItemsKey));
+      } else { // empty cache
+        // load |count| and save into cache
+        return this.bookmarksManager.request({offset: 0, count: count}).then(response => {
+          common.saveToStorage(this.cacheItemsKey, response.list)
+            .then(() => common.saveToStorage(this.cacheTimestampKey, response.since));
+          return response.list;
+        });
+      }
+    });
   }
+
   /**
    * Loads all the refresh updates. Requires that getBookmarks be called before. (thus this.since be set)
    * @returns {*}
@@ -186,6 +201,13 @@ class CachedBookmarksManager extends BookmarksManagerInterface {
    * @param updates
    */
   merger(bookmarksList, updates) {
+    if (_.isEmpty(bookmarksList)) {
+      return updates;
+    }
+    if (_.isEmpty(updates)) {
+      return bookmarksList;
+    }
+
     let updatedBookmarks = BookmarksTransformer.getBookmarksFromBookmarksList(updates);
     let idsToDelete = updatedBookmarks
       .filter(bookmark => this.shouldBeDeleted(bookmark))
@@ -202,6 +224,10 @@ class CachedBookmarksManager extends BookmarksManagerInterface {
     });
   }
 
+  wipeCache() {
+    return common.saveToStorage(this.cacheTimestampKey, null)
+      .then(() => common.saveToStorage(this.cacheItemsKey, null));
+  }
 }
 
 let ArchivedBookmarksManager = new BaseBookmarksManager({state: 'archive'});

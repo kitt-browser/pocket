@@ -44,9 +44,9 @@ window.angular.module('pocket', [
     document.body.style.height = '400px';
   }
 
-  $scope.bookmarks = [];
-  $scope.allResultsFetched = false;
-  $scope.pagePocketed = false;
+  $scope.bookmarks = []; // bookmarks being displayed
+  $scope.allResultsFetched = false; // when set to true, it disables the spinning wheel
+  $scope.pagePocketed = false; //indicated whethe the current page is in pocket
 
 
   // parameters used with bookmarksManager
