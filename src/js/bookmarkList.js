@@ -1,20 +1,21 @@
 var _ = require('lodash');
 require('ionic-framework');
 
+var Minilog = require('minilog');
+var log = Minilog('app');
+Minilog.enable();
+
 require('../../node_modules/ionic-framework/release/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
 
 let bookmarksManager = require('./bookmarksManager');
 let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
-let defaultBookmarksManager = bookmarksManager.AllItemsBookmarksManager;
+let defaultBookmarksManager = bookmarksManager.UnreadCachedBookmarksManager;
 let currentBookmarksManager;
 
 var common = require('./common');
 
-var Minilog = require('minilog');
-var log = Minilog('app');
-Minilog.enable();
 
 function logging(message) {
   let messageJson = {
@@ -50,9 +51,7 @@ window.angular.module('pocket', [
 
 
   // parameters used with bookmarksManager
-  let offset = 0;
-  let count = 2;
-
+  let itemsPerPage = 20;
 
   currentBookmarksManager = defaultBookmarksManager;
 
@@ -60,7 +59,8 @@ window.angular.module('pocket', [
   function freshLoadBookmarksManager(bookmarksManagerInstance) {
     $scope.bookmarks = [];
     currentBookmarksManager = bookmarksManagerInstance;
-    $scope.loadFirstPage();
+    currentBookmarksManager.reset();
+    $scope.loadNextPage();
   }
 
   $scope.$watch('bookmarks', function(newVal, oldVal) {
@@ -71,8 +71,6 @@ window.angular.module('pocket', [
 
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
-    // FIXME bug - searches only through $scope.bookmarks, which comprises not necessarily
-    // of all bookmarks
     common.getActiveTab().then(function(tab) {
       var item = _.findWhere($scope.bookmarks, {url: tab.url});
       if (item && !$scope.pagePocketed) {
@@ -87,7 +85,7 @@ window.angular.module('pocket', [
 
   $scope.loadNextPage = function() {
     logging('$scope.loadNextPage');
-    currentBookmarksManager.getBookmarksList(offset, count)
+    currentBookmarksManager.getBookmarksList(itemsPerPage)
       .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
       .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
       .then(bookmarks => {
@@ -96,13 +94,7 @@ window.angular.module('pocket', [
         $scope.allResultsFetched = _.isEmpty(bookmarks);
         $scope.$apply();
         $scope.$broadcast('scroll.infiniteScrollComplete');
-        offset += bookmarks.length;
       });
-  };
-
-  $scope.loadFirstPage = function() { // if something in the cache, else...
-    offset = 0;
-    $scope.loadNextPage();
   };
 
   let searchDelayMs = 700;
@@ -117,8 +109,10 @@ window.angular.module('pocket', [
   }, searchDelayMs));
 
   $scope.onRefresh = function() {
-    // TODO refresh
-    $scope.$broadcast('scroll.refreshComplete');
+    currentBookmarksManager.getRefreshUpdates()
+      .then((resolved) => freshLoadBookmarksManager(currentBookmarksManager),
+        (rejected) => null)
+      .then(() => $scope.$broadcast('scroll.refreshComplete'));
   };
 
   $scope.loadArchivedBookmarks = function() {
@@ -194,10 +188,8 @@ window.angular.module('pocket', [
     });
   };
 
-  $scope.wipeCache = function(callback) {
-    chrome.runtime.sendMessage(null, {
-      command: "wipeBookmarkCache"
-    }, callback);
+  $scope.wipeCache = function() {
+    defaultBookmarksManager.wipeCache();
   };
 
 });

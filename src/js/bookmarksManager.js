@@ -130,73 +130,95 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
     });
   }
 
+  reset() {
+    this.offset = 0;
+  }
+
   getRefreshUpdates(/*since*/) {
     // basic implementation doesn't cache anything, so no need to refresh stuff
-    return Promise.resolve({});
+    return Promise.reject({});
   }
 }
 
 class CachedBookmarksManager extends BookmarksManagerInterface {
-  constructor(bookmarksManager) {
+  constructor(bookmarksManager, shouldBeDeletedFunction) {
     super();
 
     this.bookmarksManager = bookmarksManager;
 
-    let cachePrefix = 'cache_'+bookmarksManager.constructor.name.toString(); // FIXME everything comes from the same class, be it all/archive/unread/...!!!
+    // takes bookmark, returns boolean
+    // status - 0, 1, 2 - 1 if the item is archived - 2 if the item should be deleted
+    this.shouldBeDeleted = shouldBeDeletedFunction;
+
+
+
+    // FIXME now its cache_BaseBookmarksManager_items ... use lodash->unique number generator
+    let cachePrefix = 'cache_'+bookmarksManager.constructor.name.toString();
     this.cacheTimestampKey = cachePrefix + '_timestamp';
     this.cacheItemsKey = cachePrefix + '_items';
+
+    // once it gave the complete list of bookmarks (all the pages)
+    // it doesn't have anything. (equivalent of giving the last page of bookmarks)
+    // so from now can only refresh for changes
+    this.alreadyGivenBookmarks = false;
+    this._init();
   }
 
-  getBookmarksList(count) {
+  _init() {
     common.getFromStorage(this.cacheItemsKey).then(items => {
-      if (items) { // TODO rethink -
-        // load since last |since| and merge into cache
-        common.getFromStorage(this.cacheTimestampKey).then(timestamp => {
-          return this.bookmarksManager.request({since: timestamp});
-        }).then(updateResponse => {
-          let updatedSince = updateResponse.since;
-          let listOfUpdates = updateResponse.list;
-          return common.saveToStorage(this.cacheTimestampKey, updatedSince)
-            .then(() => common.getFromStorage(this.cacheItemsKey))
-            .then(items => this.merger(items, listOfUpdates));
-        }).then(newBookmarks => { // TODO optimization opportunity: return merged and save back as promise
-              return this.bookmarksManager.request({offset: _.size(newBookmarks), count: count})
-                .then(newItemsResponse =>  this.merger(newBookmarks, newItemsResponse.list));
-        }).then(newBookmarks =>common.saveToStorage(this.cacheItemsKey, newBookmarks))
-          .then(() => common.getFromStorage(this.cacheItemsKey));
-      } else { // empty cache
-        // load |count| and save into cache
-        return this.bookmarksManager.request({offset: 0, count: count}).then(response => {
-          common.saveToStorage(this.cacheItemsKey, response.list)
-            .then(() => common.saveToStorage(this.cacheTimestampKey, response.since));
-          return response.list;
+      if (!items) { // download all items
+        return this.bookmarksManager.request({}).then(bookmarks => {
+          let bookmarksSince = bookmarks.since;
+          let bookmarksList = bookmarks.list;
+          return common.saveToStorage(this.cacheItemsKey, bookmarksList)
+            .then(() => common.saveToStorage(this.cacheTimestampKey, bookmarksSince));
         });
+      } else { // there are some items in the storage, just handle updates...
+        return this.refreshCache();
       }
     });
   }
 
-  /**
-   * Loads all the refresh updates. Requires that getBookmarks be called before. (thus this.since be set)
-   * @returns {*}
-   */
-  getRefreshUpdates() {
-    let newRequest = _.clone(this.baseRequest);
-    if (this.since) {
-      newRequest = _.extend(newRequest, {since: this.since});
-      // if not since -> there was no 'nextPage' call -> list is empty,do not do anything
-      return this._retrieveBookmarksListWithUpdatedSince(newRequest, true);
+  reset() {
+    this.alreadyGivenBookmarks = false;
+  }
+
+  // may return a rejected promise!
+  refreshCache() {
+    return common.getFromStorage(this.cacheTimestampKey).then(timestamp => {
+      return this.bookmarksManager.request({since: timestamp});
+    }).then(updateResponse => {
+      let updatedSince = updateResponse.since;
+      let listOfUpdates = updateResponse.list;
+
+      if (_.size(listOfUpdates) === 0) {
+        return Promise.reject('No new updates.');
+      } else {
+        return common.saveToStorage(this.cacheTimestampKey, updatedSince)
+          .then(() => common.getFromStorage(this.cacheItemsKey))
+          .then(items => this.merger(items, listOfUpdates));
+      }
+    }).then(mergedBookmarks => common.saveToStorage(this.cacheItemsKey, mergedBookmarks));
+  }
+
+  getBookmarksList(/* count */) { // always fetch everything
+    if (this.alreadyGivenBookmarks) {
+      return Promise.resolve({});
     } else {
-      throw new Error('Calling refresh on an empty list');
+      this.alreadyGivenBookmarks = true;
+      return common.getFromStorage(this.cacheItemsKey).then(items => {
+        return items;
+      });
     }
   }
 
-  // status - 0, 1, 2 - 1 if the item is archived - 2 if the item should be deleted
-  shouldBeDeleted(/* bookmark */) {
-    throw new Error('Not implemented the |shouldBeDeleted| method');
+
+  getRefreshUpdates(/*since*/) {
+    // basic implementation doesn't cache anything, so no need to refresh stuff
+    return this.refreshCache();
   }
 
   /**
-   * ?? TODO can be used both in refresh updates and nextpage(secondarily)
    * @param bookmarksList object where key=bookmark_id, value=whole bookmark info
    * @param updates
    */
@@ -222,6 +244,8 @@ class CachedBookmarksManager extends BookmarksManagerInterface {
       let itemId = updatedBookmark.item_id;
       bookmarksList[itemId] = updatedBookmark;
     });
+
+    return bookmarksList;
   }
 
   wipeCache() {
@@ -234,59 +258,12 @@ let ArchivedBookmarksManager = new BaseBookmarksManager({state: 'archive'});
 let AllItemsBookmarksManager = new BaseBookmarksManager({state: 'unread'});
 let FavoriteBookmarksManager= new BaseBookmarksManager({state: 'all', favorite: 1});
 
+let UnreadCachedBookmarksManager = new CachedBookmarksManager(AllItemsBookmarksManager, bookmark => bookmark.status > 0);
+
 let SearchBookmarksManagerFactory = function(searchPhrase) {
   return new BaseBookmarksManager({state: 'unread', search:searchPhrase});
 };
 
-// !!!! ****** CACHE IFF REFRESHABLE TODO TODO TODO TODO
-
-
-
-
-/////// test
-//let myBookmarks = [];//...
-//let panel = new ArchivedBookmarksPanel();
-//
-//// all are promises
-//panel.updateWithNextPage(myBookmarks)   .then(()=>$scope.$apply()); // or something like that...
-//
-//
-//panel._getNextPage(myBookmarks.length).then((nextPageBookmarks)=> {
-//  myBookmarks = panel.merger(myBookmarks, nextPageBookmarks); // idea: special merger should be used only with refresher
-//});
-//let since = 0; // get from cache
-//
-//panel.getRefreshUpdates(since).then(updates=> {
-//  myBookmarks = panel.merger(myBookmarks, nextPageBookmarks); // idea: special merger should be used only with refresher
-//});
-//either way i must use some caching at least for the new itens.
-// !idea -> MergerPanel extends BasePanel -> adds updateWith.... -> makes syntactic sugar + handles cache
-// + handles offset,...
-// do I need cache at all? don't think so..
-//panel.updateWithRefresh(myBookmarks); // output arguments
-// what f merger DID NOT belong to the class? (was purely static?)
-//myBookmarks = ArchivedBookmarksPanel.merger() //--> should not work - EXA said so!!!!
-// static hierarchy calling should not work anywhere... bcs merger calls shouldBeDeleted
-//
-//
-//class BookmarksCacheUpdater {
-//  constructor({requestorPanel: panel, list:bookmarksList, prefix: prefix}) {
-//    this.offset = 0;
-//    this.bookmarksList = bookmarksList;
-//  }
-//  refreshUpdate() {
-//    let self = this; // todo delete? labmda hacks it all
-//    return getFromStorage(this.prefix+'since').then(since => {
-//      panel.getRefreshUpdates(since).then(updates => {
-//        this.bookmarksList = panel.merger(this.bookmarksList);
-//      });
-//    });
-//  }
-//
-//}
-
-// if I'm in archived bookmarks, then returning update with status=archived is ok
-// otherwise both archived and deleted mean delete... implement a method in class to decide fi
 window.request = request;
 
 window.bookmarksManager =
@@ -294,9 +271,7 @@ module.exports = {
   _,
   BookmarksTransformer,
 
-  // base classes we derive from. Possibly we shouldn't even export them
-  CachedBookmarksManager,
-  BaseBookmarksManager,
+  UnreadCachedBookmarksManager,
 
   FavoriteBookmarksManager,
   SearchBookmarksManagerFactory,

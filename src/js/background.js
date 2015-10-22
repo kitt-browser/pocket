@@ -44,6 +44,9 @@ function makeRequest(url, method, data) {
       log.error(err);
     }
     return Q.reject(err);
+  }).then(response => {
+    log.debug('makeRequest response',response);
+    return response;
   });
 }
 
