@@ -1,10 +1,6 @@
 var _ = require('lodash');
 require('ionic-framework');
 
-var Minilog = require('minilog');
-var log = Minilog('app');
-Minilog.enable();
-
 require('../../node_modules/ionic-framework/release/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
@@ -16,21 +12,6 @@ let currentBookmarksManager;
 
 var common = require('./common');
 
-
-function logging(message) {
-  let messageJson = {
-    command: "echo",
-    message: message
-  };
-
-  chrome.runtime.sendMessage(null, messageJson, function(response) {
-    log.debug(message); // in fact it logs into popup window console. which is inconvenient to open....
-  });
-
-  common.getActiveTab().then(tab => {
-    chrome.runtime.sendMessage(tab.id, {command: 'echoContentScript', message: message});
-  });
-}
 
 function isMobile() {
   return window.navigator.userAgent.indexOf('Mobile') !== -1;
@@ -51,7 +32,7 @@ window.angular.module('pocket', [
 
 
   // parameters used with bookmarksManager
-  let itemsPerPage = 20;
+  const itemsPerPage = 20;
 
   currentBookmarksManager = defaultBookmarksManager;
 
@@ -84,8 +65,8 @@ window.angular.module('pocket', [
   }, true);
 
   $scope.loadNextPage = function() {
-    logging('$scope.loadNextPage');
-    currentBookmarksManager.getBookmarksList(itemsPerPage)
+    common.logging('$scope.loadNextPage');
+    currentBookmarksManager.getNextBookmarks(itemsPerPage)
       .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
       .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
       .then(bookmarks => {
@@ -108,12 +89,13 @@ window.angular.module('pocket', [
     }
   }, searchDelayMs));
 
+  /*
   $scope.onRefresh = function() {
     currentBookmarksManager.getRefreshUpdates()
       .then((resolved) => freshLoadBookmarksManager(currentBookmarksManager),
         (rejected) => null)
       .then(() => $scope.$broadcast('scroll.refreshComplete'));
-  };
+  };*/
 
   $scope.loadArchivedBookmarks = function() {
     freshLoadBookmarksManager(bookmarksManager.ArchivedBookmarksManager);
@@ -131,6 +113,7 @@ window.angular.module('pocket', [
     event.preventDefault();
     event.stopPropagation();
     archiveItem(item);
+    currentBookmarksManager.reset();
   };
 
 
@@ -140,11 +123,12 @@ window.angular.module('pocket', [
       id: item.id
     }, function(response) {
       if (response && response.error) {
-        logging.error('deleting bookmarks', response.error);
+        common.logging.error('deleting bookmarks', response.error);
         return;
       }
-      logging('deleted bookmark');
-      $scope.bookmarks.splice(_.findKey($scope.bookmarks), b => b.item_id == item.id, 1);
+      common.logging('deleted bookmark');
+      common.logging(  $scope.bookmarks.splice(_.findKey($scope.bookmarks, b => b.item_id == item.id), 1));
+      common.logging($scope.bookmarks);
       $scope.$apply();
     });
   }

@@ -1,5 +1,9 @@
 var Q = require('q');
 
+var Minilog = require('minilog');
+var log = Minilog('app');
+Minilog.enable();
+
 var getActiveTab = function() {
   var defer = Q.defer();
 
@@ -34,8 +38,24 @@ var saveToStorage = function(key, val) {
   return defer.promise;
 };
 
+function logging(/*message*/) {
+  let messageJson = {
+    command: "echo",
+    message: arguments
+  };
+
+  chrome.runtime.sendMessage(null, messageJson, function(response) {
+    log.debug(arguments); // in fact it logs into popup window console. which is inconvenient to open....
+  });
+
+  getActiveTab().then(tab => {
+    chrome.runtime.sendMessage(tab.id, {command: 'echoContentScript', message: arguments});
+  });
+}
+
 module.exports = {
-  getActiveTab: getActiveTab,
-  getFromStorage: getFromStorage,
-  saveToStorage: saveToStorage,
+   getActiveTab,
+   getFromStorage,
+   saveToStorage,
+   logging
 };

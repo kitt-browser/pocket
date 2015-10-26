@@ -21,8 +21,10 @@ function request(url, data) {
       url: url,
       data: data
     }, function(response) {
-      if (chrome.runtime.lastError) {
-        reject('Request didnt return valid result');
+      if (response.error) {
+        reject(response.error);
+      } else if (chrome.runtime.lastError) {
+        reject('Request didn\'t return valid result');
       } else {
         resolve(response);
       }
@@ -80,22 +82,35 @@ class BookmarksTransformer {
         favorited: moment.unix(item.time_favorited)
       },
       favorite: (parseInt(item.favorite) === 1),
-      tags: tags
-      //status: parseInt(item.status)
+      tags: tags,
+      status: parseInt(item.status)
     };
   }
 
 }
+
+// their main responsibility is to handle pagination
 class BookmarksManagerInterface {
   constructor() {
     this.getEndpoint = constants.pocket_api_endpoint + '/get';
   }
-  getBookmarksList() {
+
+  basicRequest(params) {
+    return request(this.getEndpoint, params);
+  }
+
+  getNextBookmarks(/* count */) {
     throw new Error('Not implemented');
   }
-  getRefreshUpdates() {
+
+  update() {
     throw new Error('Not implemented');
   }
+
+  reset() {
+    throw new Error('Not implemented');
+  }
+
 }
 
 class BaseBookmarksManager extends BookmarksManagerInterface {
@@ -115,7 +130,8 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
 
   request(additionalParams) {
     let requestParams = _.extend( _.clone(this.baseRequest), additionalParams);
-    return request(this.getEndpoint, requestParams);
+    common.logging('request in bookmarksmanager and params', requestParams);
+    return this.basicRequest(requestParams);
   }
 
   /**
@@ -123,7 +139,7 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
    * @param count try to get |count new bookmarks|
    * @returns {*}
    */
-  getBookmarksList(count) {
+  getNextBookmarks(count) {
     return this.request({count: count, offset: this.offset}).then(response => {
       this.offset += _.size(response.list);
       return response.list;
@@ -134,147 +150,178 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
     this.offset = 0;
   }
 
+  update() { }
+
   getRefreshUpdates(/*since*/) {
     // basic implementation doesn't cache anything, so no need to refresh stuff
     return Promise.reject({});
   }
 }
 
-class CachedBookmarksManager extends BookmarksManagerInterface {
-  constructor(bookmarksManager, shouldBeDeletedFunction) {
-    super();
-
-    this.bookmarksManager = bookmarksManager;
-
+class Cache {
+  constructor(cacheName, shouldBeDeletedFunction, bookmarksManager) {
     // takes bookmark, returns boolean
     // status - 0, 1, 2 - 1 if the item is archived - 2 if the item should be deleted
     this.shouldBeDeleted = shouldBeDeletedFunction;
+    this.bookmarksManager = bookmarksManager;
 
-
-
-    // FIXME now its cache_BaseBookmarksManager_items ... use lodash->unique number generator
-    let cachePrefix = 'cache_'+bookmarksManager.constructor.name.toString();
-    this.cacheTimestampKey = cachePrefix + '_timestamp';
-    this.cacheItemsKey = cachePrefix + '_items';
-
-    // once it gave the complete list of bookmarks (all the pages)
-    // it doesn't have anything. (equivalent of giving the last page of bookmarks)
-    // so from now can only refresh for changes
-    this.alreadyGivenBookmarks = false;
-    this._init();
-  }
-
-  _init() {
-    common.getFromStorage(this.cacheItemsKey).then(items => {
-      if (!items) { // download all items
-        return this.bookmarksManager.request({}).then(bookmarks => {
-          let bookmarksSince = bookmarks.since;
-          let bookmarksList = bookmarks.list;
-          return common.saveToStorage(this.cacheItemsKey, bookmarksList)
-            .then(() => common.saveToStorage(this.cacheTimestampKey, bookmarksSince));
-        });
-      } else { // there are some items in the storage, just handle updates...
-        return this.refreshCache();
-      }
-    });
-  }
-
-  reset() {
-    this.alreadyGivenBookmarks = false;
-  }
-
-  // may return a rejected promise!
-  refreshCache() {
-    return common.getFromStorage(this.cacheTimestampKey).then(timestamp => {
-      return this.bookmarksManager.request({since: timestamp});
-    }).then(updateResponse => {
-      let updatedSince = updateResponse.since;
-      let listOfUpdates = updateResponse.list;
-
-      if (_.size(listOfUpdates) === 0) {
-        return Promise.reject('No new updates.');
-      } else {
-        return common.saveToStorage(this.cacheTimestampKey, updatedSince)
-          .then(() => common.getFromStorage(this.cacheItemsKey))
-          .then(items => this.merger(items, listOfUpdates));
-      }
-    }).then(mergedBookmarks => common.saveToStorage(this.cacheItemsKey, mergedBookmarks));
-  }
-
-  getBookmarksList(/* count */) { // always fetch everything
-    if (this.alreadyGivenBookmarks) {
-      return Promise.resolve({});
-    } else {
-      this.alreadyGivenBookmarks = true;
-      return common.getFromStorage(this.cacheItemsKey).then(items => {
-        return items;
-      });
-    }
-  }
-
-
-  getRefreshUpdates(/*since*/) {
-    // basic implementation doesn't cache anything, so no need to refresh stuff
-    return this.refreshCache();
+    this.cacheTimestampKey = cacheName + '_timestamp';
+    this.cacheItemsKey = cacheName + '_items';
   }
 
   /**
-   * @param bookmarksList object where key=bookmark_id, value=whole bookmark info
-   * @param updates
+   * Ensure, we have most up-to-date cache available.
    */
-  merger(bookmarksList, updates) {
+  update() {
+    return common.getFromStorage(this.cacheItemsKey).then(items => {
+      if (!items) { // download all items
+        return this._loadBookmarksFromScratch();
+      } else { // there are some items in the storage, just handle updates...
+        return this._checkBookmarksFromLastTime();
+      }
+    });
+  }
+
+  _loadBookmarksFromScratch() {
+    return this.bookmarksManager.request({}).then(bookmarks => {
+      let bookmarksSince = bookmarks.since;
+      let bookmarksList = bookmarks.list;
+      return common.saveToStorage(this.cacheItemsKey, bookmarksList)
+        .then(() => common.saveToStorage(this.cacheTimestampKey, bookmarksSince));
+    });
+  }
+
+  // may return a rejected promise!
+  _checkBookmarksFromLastTime() {
+    return common.getFromStorage(this.cacheTimestampKey)
+      .then(timestamp => this.bookmarksManager.basicRequest({since: timestamp}))
+      .then(updateResponse => {
+        common.logging('>>>update response', JSON.stringify(updateResponse));
+        let updatedSince = updateResponse.since;
+        let listOfUpdates = updateResponse.list;
+
+        if (_.size(listOfUpdates) === 0) {
+          return Promise.reject('No new updates.');
+        } else {
+          return common.saveToStorage(this.cacheTimestampKey, updatedSince)
+            .then(() => common.getFromStorage(this.cacheItemsKey))
+            .then(items => this._merger(items, listOfUpdates));
+        }
+      })
+      .then(mergedBookmarks => common.saveToStorage(this.cacheItemsKey, mergedBookmarks));
+      // TODO add .then(failed promise) -> when internet is down
+  }
+
+  get() {
+    return common.getFromStorage(this.cacheItemsKey);
+  }
+
+  tryGetFresh() {
+    return this.update().then(() => this.get(), () => this.get());
+  }
+  /**
+   * @param bookmarksList object where key=bookmark_id, value=whole bookmark info
+   * @param updateBookmarksList object where key=bookmark_id, value=whole bookmark info
+   */
+  _merger(bookmarksList, updateBookmarksList) {
+    // common.logging('>>>merger originalList+updates:', bookmarksList, updateBookmarksList);
     if (_.isEmpty(bookmarksList)) {
-      return updates;
+      return updateBookmarksList;
     }
-    if (_.isEmpty(updates)) {
+    if (_.isEmpty(updateBookmarksList)) {
       return bookmarksList;
     }
 
-    let updatedBookmarks = BookmarksTransformer.getBookmarksFromBookmarksList(updates);
-    let idsToDelete = updatedBookmarks
-      .filter(bookmark => this.shouldBeDeleted(bookmark))
-      .map(bookmark => bookmark.item_id);
+    let updateBookmarksArray = BookmarksTransformer.getBookmarksFromBookmarksList(updateBookmarksList);
+    console.log(updateBookmarksArray);
 
-    idsToDelete.forEach(idToDelete => {
-      delete bookmarksList[idToDelete];
-      delete updatedBookmarks[idToDelete];
-    });
-
-    updatedBookmarks.forEach(updatedBookmark => {
+    // 1.  update bookmarks
+    updateBookmarksArray.forEach(updatedBookmark => {
       let itemId = updatedBookmark.item_id;
       bookmarksList[itemId] = updatedBookmark;
     });
 
+    // 2. delete bookmarks
+    let idsToDelete = updateBookmarksArray
+      .filter(bookmark => this.shouldBeDeleted(bookmark))
+      .map(bookmark => bookmark.item_id);
+    console.log('idstodelete', idsToDelete);
+
+    idsToDelete.forEach(idToDelete => {
+      delete bookmarksList[idToDelete];
+    });
+
+    // common.logging('>>merger result', bookmarksList);
     return bookmarksList;
   }
 
-  wipeCache() {
+  wipe() {
     return common.saveToStorage(this.cacheTimestampKey, null)
       .then(() => common.saveToStorage(this.cacheItemsKey, null));
   }
 }
 
-let ArchivedBookmarksManager = new BaseBookmarksManager({state: 'archive'});
-let AllItemsBookmarksManager = new BaseBookmarksManager({state: 'unread'});
-let FavoriteBookmarksManager= new BaseBookmarksManager({state: 'all', favorite: 1});
+class CachedBookmarksManager extends BookmarksManagerInterface {
+  constructor(cacheName, bookmarksManager, shouldBeDeletedFunction) {
+    super();
+    this.cache = new Cache(cacheName, shouldBeDeletedFunction, bookmarksManager);
+    this.cache.update();
 
-let UnreadCachedBookmarksManager = new CachedBookmarksManager(AllItemsBookmarksManager, bookmark => bookmark.status > 0);
+    // once it gave the complete list of bookmarks (all the pages)
+    // it doesn't have anything. (equivalent of giving the last page of bookmarks)
+    // so from now can only refresh for changes
+    this.alreadyGivenBookmarks = false;
+  }
+
+  reset() {
+    this.cache.update();
+    this.alreadyGivenBookmarks = false;
+  }
+
+  getNextBookmarks(/* count */) { // always fetch everything
+    if (this.alreadyGivenBookmarks) {
+      return Promise.resolve({});
+    } else {
+      this.alreadyGivenBookmarks = true;
+      return this.cache.tryGetFresh();
+    }
+  }
+
+  // todo might delete
+  update(/*since*/) {
+    return this.cache.update();
+  }
+
+  wipeCache() {
+    this.cache.wipe();
+  }
+}
+
+let ArchivedBookmarksManager = new BaseBookmarksManager({state: 'archive'});
+let UnreadBookmarksManager = new BaseBookmarksManager({state: 'unread'});
+let FavoriteBookmarksManager = new BaseBookmarksManager({state: 'all', favorite: 1});
+
+let UnreadCachedBookmarksManager = new CachedBookmarksManager('UnreadBMCache_', UnreadBookmarksManager, bookmark => bookmark.status > 0);
 
 let SearchBookmarksManagerFactory = function(searchPhrase) {
-  return new BaseBookmarksManager({state: 'unread', search:searchPhrase});
+  return new BaseBookmarksManager({state: 'unread', search: searchPhrase});
 };
 
 window.request = request;
 
 window.bookmarksManager =
 module.exports = {
-  _,
   BookmarksTransformer,
+
+  // future removal
+  _,
+  BaseBookmarksManager,
+  CachedBookmarksManager,
 
   UnreadCachedBookmarksManager,
 
   FavoriteBookmarksManager,
   SearchBookmarksManagerFactory,
-  AllItemsBookmarksManager,
+  UnreadBookmarksManager,
   ArchivedBookmarksManager
 };

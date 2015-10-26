@@ -263,16 +263,6 @@ watchpocket.sendApiRequest = function (actions) {
     });
 };
 
-watchpocket.archive = function(itemId) {
-  return watchpocket.sendApiRequest([{action: 'archive', item_id: itemId}])
-    .then(function() {
-      return common.getFromStorage('items');
-    })
-    .then(function(items) {
-      delete items[itemId];
-      return common.saveToStorage('items', items);
-    });
-};
 
 watchpocket.articleView = function(url) {
   return makeRequest(constants.article_view_endpoint + '?consumer_key=' + constants.consumerKey +
@@ -334,13 +324,13 @@ $(function() {
         return true;
 
 
-
-      case 'getBookmark':
-        common.getFromStorage('items').then(function(items) { //TODO
-          console.log('!found in storage', items[request.id]);
-          sendResponse(items[request.id]);
-        });
-        return true;
+//
+//      case 'getBookmark':
+//        common.getFromStorage('items').then(function(items) { //TODO
+//          console.log('!found in storage', items[request.id]);
+//          sendResponse(items[request.id]);
+//        });
+//        return true;
 
 //      case 'loadBookmarks':
 //        watchpocket.loadBookmarks(request.opts, request.flags)
@@ -378,12 +368,9 @@ $(function() {
 //        return true;
 
       case 'archiveBookmark':
-        watchpocket.archive(request.id).then(function() {
-          sendResponse(null);
-        }).fail(function(err) {
-          log.error('archive error', err);
-          sendResponse({error: err});
-        }).done();
+        watchpocket.sendApiRequest([{action: 'archive', item_id: request.id}])
+          .then(() => sendResponse(null))
+          .fail((err)  => { log.error('archive error', err); sendResponse({error: err}); }).done();
         return true;
 
       case 'echo':
@@ -399,7 +386,8 @@ $(function() {
             consumer_key: constants.consumerKey,
             access_token: token,
           }, request.data);
-          return post(request.url, params).then(response => sendResponse(response));
+          return post(request.url, params)
+            .then(response => sendResponse(response), err => sendResponse({error: err}));
         }).done();
         return true;
 
@@ -409,3 +397,6 @@ $(function() {
     }
   });
 });
+
+window.post = post;
+window.makeRequest = makeRequest;
