@@ -368,7 +368,8 @@ $(function() {
 //        return true;
 
       case 'archiveBookmark':
-        watchpocket.sendApiRequest([{action: 'archive', item_id: request.id}])
+        console.log('THIS IS ARCHIVED', request.item_id);
+        watchpocket.sendApiRequest([{action: 'archive', item_id: request.item_id}])
           .then(() => sendResponse(null))
           .fail((err)  => { log.error('archive error', err); sendResponse({error: err}); }).done();
         return true;

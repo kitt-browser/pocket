@@ -113,14 +113,13 @@ window.angular.module('pocket', [
     event.preventDefault();
     event.stopPropagation();
     archiveItem(item);
-    currentBookmarksManager.reset();
   };
 
 
   function archiveItem(item) {
     chrome.runtime.sendMessage(null, {
       command: "archiveBookmark",
-      id: item.id
+      item_id: item.item_id
     }, function(response) {
       if (response && response.error) {
         common.logging.error('deleting bookmarks', response.error);
@@ -130,6 +129,7 @@ window.angular.module('pocket', [
       common.logging(  $scope.bookmarks.splice(_.findKey($scope.bookmarks, b => b.item_id == item.id), 1));
       common.logging($scope.bookmarks);
       $scope.$apply();
+      currentBookmarksManager.reset();
     });
   }
 
