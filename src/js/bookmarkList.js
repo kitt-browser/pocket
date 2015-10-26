@@ -1,4 +1,4 @@
-var _ = require('lodash');
+let _ = require('lodash');
 require('ionic-framework');
 
 require('../../node_modules/ionic-framework/release/css/ionic.css');
@@ -10,7 +10,7 @@ let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
 let defaultBookmarksManager = bookmarksManager.UnreadCachedBookmarksManager;
 let currentBookmarksManager;
 
-var common = require('./common');
+let common = require('./common');
 
 
 function isMobile() {
@@ -28,7 +28,7 @@ window.angular.module('pocket', [
 
   $scope.bookmarks = []; // bookmarks being displayed
   $scope.allResultsFetched = false; // when set to true, it disables the spinning wheel
-  $scope.pagePocketed = false; //indicated whethe the current page is in pocket
+  $scope.pagePocketed = false; //indicates whether the current page is in pocket
 
 
   // parameters used with bookmarksManager
@@ -52,12 +52,14 @@ window.angular.module('pocket', [
 
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
+    // FIXME: known issue. wikipedia saves http://..., but when I get to https:// the urls
+    // FIXME: differ, so it doesn't recognize it
     common.getActiveTab().then(function(tab) {
       var item = _.findWhere($scope.bookmarks, {url: tab.url});
-      if (item && !$scope.pagePocketed) {
+
+      if (item) {
         document.getElementById('add-or-article-view').setAttribute('class', 'button ion-ios7-paper');
-      }
-      else if (!item && $scope.pagePocketed) {
+      } else {
         document.getElementById('add-or-article-view').setAttribute('class', 'button ion-ios7-plus');
       }
       $scope.pagePocketed = !!item;
@@ -66,7 +68,7 @@ window.angular.module('pocket', [
 
   $scope.loadNextPage = function() {
     common.logging('$scope.loadNextPage');
-    currentBookmarksManager.getNextBookmarks(itemsPerPage)
+    return currentBookmarksManager.getNextBookmarks(itemsPerPage)
       .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
       .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
       .then(bookmarks => {

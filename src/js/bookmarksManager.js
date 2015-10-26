@@ -55,11 +55,6 @@ class BookmarksTransformer {
     // Real URL is preferably the resolved URL but could be the given URL
     var realURL = item.resolved_url || item.given_url;
 
-    // If neither resolved or given URL the item isn't worthwhile showing
-    if ( ! realURL || item.status > 1) {
-      return null;
-    }
-
     // Regular expression to parse out the domain name of the URL, or an empty string if something fails
     var domain = realURL.match(/^((http[s]?|ftp):\/)?\/?([^:\/\s]+)(:([^\/]*))?/i)[3] || '';
     // Fetches a icon from a great webservice which provides a default fallback icon
@@ -92,11 +87,11 @@ class BookmarksTransformer {
 // their main responsibility is to handle pagination
 class BookmarksManagerInterface {
   constructor() {
-    this.getEndpoint = constants.pocket_api_endpoint + '/get';
+    this.endpoint = constants.pocket_api_endpoint + '/get';
   }
 
-  basicRequest(params) {
-    return request(this.getEndpoint, params);
+  static baseRequest(params) {
+    return request(this.endpoint, params);
   }
 
   getNextBookmarks(/* count */) {
@@ -115,23 +110,23 @@ class BookmarksManagerInterface {
 
 class BaseBookmarksManager extends BookmarksManagerInterface {
   /**
-   * @param baseRequest specification of the API to be sent via /get
+   * @param requestParams specification of the API to be sent via /get
    */
-  constructor(baseRequest) {
+  constructor(requestParams) {
     super();
-    if (typeof baseRequest !== 'object') {
+    if (typeof requestParams !== 'object') {
       throw new Error('Need to pass original config');
     }
-    this.baseRequest = baseRequest;
-    this.baseRequest.detailType = 'complete';
+    this.requestParams = requestParams;
+    this.requestParams.detailType = 'complete';
 
     this.offset = 0; // offset at which se send the following request
   }
 
   request(additionalParams) {
-    let requestParams = _.extend( _.clone(this.baseRequest), additionalParams);
+    let requestParams = _.extend( _.clone(this.requestParams), additionalParams);
     common.logging('request in bookmarksmanager and params', requestParams);
-    return this.basicRequest(requestParams);
+    return BookmarksManagerInterface.baseRequest(requestParams);
   }
 
   /**
@@ -194,7 +189,7 @@ class Cache {
   // may return a rejected promise!
   _checkBookmarksFromLastTime() {
     return common.getFromStorage(this.cacheTimestampKey)
-      .then(timestamp => this.bookmarksManager.basicRequest({since: timestamp}))
+      .then(timestamp => BookmarksManagerInterface.baseRequest({since: timestamp}))
       .then(updateResponse => {
         common.logging('>>>update response', JSON.stringify(updateResponse));
         let updatedSince = updateResponse.since;
