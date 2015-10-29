@@ -93,9 +93,19 @@ window.angular.module('pocket', [
     }
   }, searchDelayMs));
 
+  // either tabsbar or searchbar are on (=visible)
+  let tabsBarOn = true;
   $scope.showSearchBar = function() {
-    $('#tabsBar').removeClass('active');
-    $('#searchBar').addClass('active');
+    if (tabsBarOn) {
+      $('#tabsBar').removeClass('active');
+      $('#searchBar').addClass('active');
+    } else {
+      $('#searchBar').removeClass('active');
+      $('#tabsBar').addClass('active');
+      $scope.searchText = '';
+      $scope.$apply();
+    }
+    tabsBarOn = !tabsBarOn;
   };
 
   /*
