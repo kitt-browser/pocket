@@ -86,12 +86,13 @@ class BookmarksTransformer {
 
 // their main responsibility is to handle pagination
 class BookmarksManagerInterface {
-  constructor() {
-    this.endpoint = constants.pocket_api_endpoint + '/get';
+  static getEndpoint() {
+    return constants.pocket_api_endpoint + '/get';
   }
 
+
   static baseRequest(params) {
-    return request(this.endpoint, params);
+    return request(BookmarksManagerInterface.getEndpoint(), params);
   }
 
   getNextBookmarks(/* count */) {
@@ -112,7 +113,7 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
   /**
    * @param requestParams specification of the API to be sent via /get
    */
-  constructor(requestParams) {
+    constructor(requestParams) {
     super();
     if (typeof requestParams !== 'object') {
       throw new Error('Need to pass original config');
@@ -204,7 +205,7 @@ class Cache {
         }
       })
       .then(mergedBookmarks => common.saveToStorage(this.cacheItemsKey, mergedBookmarks));
-      // TODO add .then(failed promise) -> when internet is down
+    // TODO add .then(failed promise) -> when internet is down
   }
 
   get() {
@@ -305,18 +306,18 @@ let SearchBookmarksManagerFactory = function(searchPhrase) {
 window.request = request;
 
 window.bookmarksManager =
-module.exports = {
-  BookmarksTransformer,
+  module.exports = {
+    BookmarksTransformer,
 
-  // future removal
-  _,
-  BaseBookmarksManager,
-  CachedBookmarksManager,
+    // future removal
+    _,
+    BaseBookmarksManager,
+    CachedBookmarksManager,
 
-  UnreadCachedBookmarksManager,
+    UnreadCachedBookmarksManager,
 
-  FavoriteBookmarksManager,
-  SearchBookmarksManagerFactory,
-  UnreadBookmarksManager,
-  ArchivedBookmarksManager
-};
+    FavoriteBookmarksManager,
+    SearchBookmarksManagerFactory,
+    UnreadBookmarksManager,
+    ArchivedBookmarksManager
+  };
