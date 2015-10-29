@@ -189,6 +189,11 @@ window.angular.module('pocket', [
     });
   }
 
+  $scope.addCurrentPageToPocket = function() {
+    common.getActiveTab().then((tab) => addBookmark(tab.url));
+    window.close();
+  };
+
   function addBookmark(url) {
     chrome.runtime.sendMessage(null, {
       command: 'addBookmark',
