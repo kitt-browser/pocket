@@ -119,17 +119,12 @@ window.angular.module('pocket', [
   $scope.loadFavoritedBookmarks = function() {
     freshLoadBookmarksManager(bookmarksManager.FavoriteBookmarksManager);
     switchActiveTab('#favorited-items');
-
   };
 
   $scope.archive = function(event, item) {
     event.preventDefault();
     event.stopPropagation();
-    archiveItem(item);
-  };
 
-
-  function archiveItem(item) {
     chrome.runtime.sendMessage(null, {
       command: "archiveBookmark",
       item_id: item.item_id
@@ -144,7 +139,7 @@ window.angular.module('pocket', [
       $scope.$apply();
       currentBookmarksManager.reset();
     });
-  }
+  };
 
   $scope.bookmarkSelected = function(item) {
     common.getActiveTab().then(function(tab) {
@@ -154,36 +149,50 @@ window.angular.module('pocket', [
     });
   };
 
-  $scope.addCurrentOrArticleView = function() {
+  $scope.articleView = function(event, item) {
+    event.preventDefault();
+    event.stopPropagation();
     common.getActiveTab().then(function(tab) {
-      if ($scope.pagePocketed) {
-        chrome.runtime.sendMessage(null, {
-          command: 'requestArticleView',
-          url: tab.url
-        }, function(response) {
-          console.log(JSON.stringify(response));
-          common.getActiveTab().then(function(tab) {
-            chrome.tabs.sendMessage(tab.id, {
-              command: 'showArticleView',
-              title: response.title,
-              article: response.article,
-              resolved_id: response.resolved_id
-            });
-            window.close();
-          });
-        });
-      }
-      else {
-        chrome.runtime.sendMessage(null, {
-          command: 'addBookmark',
-          url: tab.url
-        }, function() {
-          window.close();
-          $scope.$apply();
-        });
-      }
+      viewArticle(item.url, tab.id, item);
     });
   };
+
+  function viewArticle(url, tabId, item) {
+    chrome.runtime.sendMessage(null, {
+      command: 'requestArticleView',
+      url: url
+    }, function(response) {
+        let message = {
+          command: 'showArticleView',
+          title: response.title,
+          article: response.article,
+          resolved_id: response.resolved_id,
+          item: item
+        };
+        chrome.tabs.sendMessage(tabId, message);
+        window.close();
+    });
+  }
+
+  function addBookmark(url) {
+    chrome.runtime.sendMessage(null, {
+      command: 'addBookmark',
+      url: url
+    }, function() {
+      window.close();
+      $scope.$apply();
+    });
+  }
+//
+//  $scope.addCurrentOrArticleView = function() {
+//    common.getActiveTab().then(function(tab) {
+//      if ($scope.pagePocketed) {
+//        viewArticle(tab.url, tab.id);
+//      } else {
+//        addBookmark(tab.url);
+//      }
+//    });
+//  };
 
   $scope.wipeCache = function() {
     defaultBookmarksManager.wipeCache();

@@ -1,5 +1,6 @@
-function createToolbarIframe(url, itemId) {
-  return '<iframe src="'+url +'?id=' + itemId+'" />';
+function createToolbarIframe(url, item) {
+  let encodedItem = encodeURIComponent(JSON.stringify(item));
+  return '<iframe src="' + url + '?item=' + encodedItem + '" />';
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
@@ -9,12 +10,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
     document.body.innerHTML += '<h1 style=\"padding: 15px; background: #ededf3; font-size: 20px; border-bottom: 1px solid #c8c7cc; color: #333; margin: 0; font-family: \'Helvetica Neue\', Helvetica, Arial, sans-serif \">' + request.title + '</h1>' + request.article;
     document.body.innerHTML += createToolbarIframe(chrome.extension.getURL('html/articleViewToolbar.html'),
-      request.resolved_id );
+      request.item);
   } else if (request.command === 'echoContentScript') {
     console.log('(echo command)', request.message);
   }
 });
-
-// TODO for debugging purposes
-window.bookmarksManager = require('./bookmarksManager');
-
