@@ -203,16 +203,17 @@ window.angular.module('pocket', [
       $scope.$apply();
     });
   }
-//
-//  $scope.addCurrentOrArticleView = function() {
-//    common.getActiveTab().then(function(tab) {
-//      if ($scope.pagePocketed) {
-//        viewArticle(tab.url, tab.id);
-//      } else {
-//        addBookmark(tab.url);
-//      }
-//    });
-//  };
+
+  // TODO
+  $scope.addCurrentOrArticleView = function() {
+    common.getActiveTab().then(function(tab) {
+      if ($scope.pagePocketed) {
+        viewArticle(tab.url, tab.id);
+      } else {
+        addBookmark(tab.url);
+      }
+    });
+  };
 
   $scope.wipeCache = function() {
     defaultBookmarksManager.wipeCache();

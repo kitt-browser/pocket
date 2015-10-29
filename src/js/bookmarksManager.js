@@ -308,14 +308,7 @@ window.request = request;
 window.bookmarksManager =
   module.exports = {
     BookmarksTransformer,
-
-    // future removal
-    _,
-    BaseBookmarksManager,
-    CachedBookmarksManager,
-
     UnreadCachedBookmarksManager,
-
     FavoriteBookmarksManager,
     SearchBookmarksManagerFactory,
     UnreadBookmarksManager,
