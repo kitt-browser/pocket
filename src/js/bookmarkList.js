@@ -93,6 +93,11 @@ window.angular.module('pocket', [
     }
   }, searchDelayMs));
 
+  $scope.showSearchBar = function() {
+    $('#tabsBar').removeClass('active');
+    $('#searchBar').addClass('active');
+  };
+
   /*
   $scope.onRefresh = function() {
     currentBookmarksManager.getRefreshUpdates()
