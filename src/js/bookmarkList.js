@@ -57,6 +57,8 @@ window.angular.module('pocket', [
     // FIXME: known issue. wikipedia saves http://..., but when I get to https:// the urls
     // FIXME: differ, so it doesn't recognize it
     common.getActiveTab().then(function(tab) {
+      // FIXME do not forget, page may be pocketed even if it's not in bookmarks (it's in archive...)
+      // for now we'll be ignoring this fact
       var item = _.findWhere($scope.bookmarks, {url: tab.url});
 
       if (item) {

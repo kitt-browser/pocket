@@ -28,9 +28,9 @@ function sendAction(action) {
     command: 'modifyBookmark',
     action: action
   }, function() {
-      chrome.runtime.sendMessage(null, {
-        command: 'updateBookmarks'
-      });
+    chrome.runtime.sendMessage(null, {
+      command: 'updateBookmarks'
+    });
   });
 }
 
