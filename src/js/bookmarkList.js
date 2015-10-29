@@ -1,4 +1,6 @@
 let _ = require('lodash');
+let $ = require('jquery');
+
 require('ionic-framework');
 
 require('../../node_modules/ionic-framework/release/css/ionic.css');
@@ -99,16 +101,25 @@ window.angular.module('pocket', [
       .then(() => $scope.$broadcast('scroll.refreshComplete'));
   };*/
 
+  function switchActiveTab(tabId) {
+    $('#my-items, #favorited-items, #archived-items').removeClass('active');
+    $(tabId).addClass('active');
+  }
+
   $scope.loadArchivedBookmarks = function() {
     freshLoadBookmarksManager(bookmarksManager.ArchivedBookmarksManager);
+    switchActiveTab('#archived-items');
   };
 
   $scope.loadUnreadBookmarks = function() {
     freshLoadBookmarksManager(defaultBookmarksManager);
+    switchActiveTab('#my-items');
   };
 
   $scope.loadFavoritedBookmarks = function() {
     freshLoadBookmarksManager(bookmarksManager.FavoriteBookmarksManager);
+    switchActiveTab('#favorited-items');
+
   };
 
   $scope.archive = function(event, item) {

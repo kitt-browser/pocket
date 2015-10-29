@@ -185,9 +185,9 @@
         ion-ios7-close class when search container is active.
       -->
       <ul class="active">
-        <li class="active">My List</li>
-        <li>Archived</li>
-        <li>Favs</li>
+        <li id="my-items" ng-click="loadUnreadBookmarks()" class="active">My List</li>
+        <li id="archived-items" ng-click="loadArchivedBookmarks();">Archived</li>
+        <li id="favorited-items" ng-click="loadFavoritedBookmarks()">Favs</li>
       </ul>
       <label class="item-input-wrapper">
         <i class="icon ion-ios7-search placeholder-icon"></i>
@@ -211,11 +211,6 @@
      <!--
       <ion-refresher on-refresh="onRefresh()"></ion-refresher>
 -->
-      <p>
-        <a id="my-items" ng-click="loadUnreadBookmarks()">My items</a> | <!-- TODO Hope that is the right callback -->
-        <a id="archived-items" ng-click="loadArchivedBookmarks()">Archived</a> |
-        <a id="favorited-items" ng-click="loadFavoritedBookmarks()"> Favorited </a>
-      </p>
 
 
       <ion-list class="list" can-swipe="true">
