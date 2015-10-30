@@ -1,8 +1,5 @@
 require('../../node_modules/ionic-framework/release/css/ionic.css');
 
-/**
- * Created by tomasnovella on 8/28/15.
- */
 let _ = require('lodash');
 let $ = require('jquery');
 

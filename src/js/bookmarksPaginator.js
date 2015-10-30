@@ -1,7 +1,3 @@
-/**
- * Created by tomasnovella on 10/5/15.
- */
-
 /*jslint node: true */
 'use strict';
 let _ = require('lodash');

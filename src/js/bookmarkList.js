@@ -55,8 +55,8 @@ window.angular.module('pocket', [
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
     common.getActiveTab().then(function(tab) {
-      // FIXME do not forget, page may be pocketed even if it's not in bookmarks (it's in archive...)
-      // FIXME for now we'll be ignoring this fact
+      // TODO do not forget, page may be pocketed even if it's not in bookmarks (it's in archive...)
+      // TODO for now we'll be ignoring this fact
 
       // sometimes, when I have cookies, or special settings in browser,
       // the page resolves to different url than when getpocket.com tries to resolve it
@@ -83,7 +83,7 @@ window.angular.module('pocket', [
       .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
       .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
       .then(bookmarks => {
-        let processedBookmarks = bookmarks.map(bookmarksTransformer.processItem); // TODO further refactor
+        let processedBookmarks = bookmarks.map(bookmarksTransformer.processItem);
         $scope.bookmarks = $scope.bookmarks.concat(processedBookmarks);
         $scope.allResultsFetched = _.isEmpty(bookmarks);
         $scope.$apply();
@@ -102,15 +102,18 @@ window.angular.module('pocket', [
     }
   }, searchDelayMs));
 
-  // either tabsbar or searchbar are on (=visible)
+  // either tabs bar or search bar are on (=visible)
   let tabsBarOn = true;
   $scope.showSearchBar = function() {
     if (tabsBarOn) {
       $('#tabsBar').removeClass('active');
       $('#searchBar').addClass('active');
+      $('#search-or-close').removeClass('ion-ios7-search').addClass('ion-ios7-close');
     } else {
       $('#searchBar').removeClass('active');
       $('#tabsBar').addClass('active');
+      $('#search-or-close').removeClass('ion-ios7-close').addClass('ion-ios7-search');
+
       $scope.searchText = '';
       $scope.$apply();
     }
