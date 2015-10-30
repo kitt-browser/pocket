@@ -7,10 +7,10 @@ require('../../node_modules/ionic-framework/release/css/ionic.css');
 require('../vendor/animate.css/animate.css');
 require('../css/pocket.css');
 
-let bookmarksManager = require('./bookmarksManager');
-let bookmarksTransformer = bookmarksManager.BookmarksTransformer;
-let defaultBookmarksManager = bookmarksManager.UnreadCachedBookmarksManager;
-let currentBookmarksManager;
+let bookmarksPaginator = require('./bookmarksPaginator');
+let bookmarksTransformer = bookmarksPaginator.BookmarksTransformer;
+let defaultBookmarksPaginator = bookmarksPaginator.UnreadCachedBookmarksPaginator;
+let currentBookmarksPaginator;
 
 let common = require('./common');
 
@@ -33,16 +33,16 @@ window.angular.module('pocket', [
   $scope.pagePocketed = false; //indicates whether the current page is in pocket
 
 
-  // parameters used with bookmarksManager
+  // parameters used with bookmarksPaginator
   const itemsPerPage = 20;
 
-  currentBookmarksManager = defaultBookmarksManager;
+  currentBookmarksPaginator = defaultBookmarksPaginator;
 
 
-  function freshLoadBookmarksManager(bookmarksManagerInstance) {
+  function freshLoadBookmarksPaginator(bookmarksPaginatorInstance) {
     $scope.bookmarks = [];
-    currentBookmarksManager = bookmarksManagerInstance;
-    currentBookmarksManager.reset();
+    currentBookmarksPaginator = bookmarksPaginatorInstance;
+    currentBookmarksPaginator.reset();
     $scope.loadNextPage();
   }
 
@@ -54,17 +54,24 @@ window.angular.module('pocket', [
 
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed
-    // FIXME: known issue. wikipedia saves http://..., but when I get to https:// the urls
-    // FIXME: differ, so it doesn't recognize it
     common.getActiveTab().then(function(tab) {
       // FIXME do not forget, page may be pocketed even if it's not in bookmarks (it's in archive...)
-      // for now we'll be ignoring this fact
-      var item = _.findWhere($scope.bookmarks, {url: tab.url});
+      // FIXME for now we'll be ignoring this fact
+
+      // sometimes, when I have cookies, or special settings in browser,
+      // the page resolves to different url than when getpocket.com tries to resolve it
+      let item = _.find($scope.bookmarks, (bookmark) => {
+        return bookmark.resolved_url === tab.url || bookmark.given_url === tab.url;
+      });
 
       if (item) {
-        document.getElementById('add-or-article-view').setAttribute('class', 'button ion-ios7-paper');
+        $('#add-or-article-view').removeClass('ion-ios7-plus').addClass('ion-ios7-paper');
+        $('#current-page-title').text(item.title);
+        $('#current-page-domain').text(item.domain);
       } else {
-        document.getElementById('add-or-article-view').setAttribute('class', 'button ion-ios7-plus');
+        $('#add-or-article-view').removeClass('ion-ios7-paper').addClass('ion-ios7-plus');
+        $('#current-page-title').text(tab.title);
+        $('#current-page-domain').text(bookmarksTransformer.parseDomain(tab.url));
       }
       $scope.pagePocketed = !!item;
     });
@@ -72,7 +79,7 @@ window.angular.module('pocket', [
 
   $scope.loadNextPage = function() {
     common.logging('$scope.loadNextPage');
-    return currentBookmarksManager.getNextBookmarks(itemsPerPage)
+    return currentBookmarksPaginator.getNextBookmarks(itemsPerPage)
       .then(bl => bookmarksTransformer.getBookmarksFromBookmarksList(bl))
       .then(bookmarks => bookmarksTransformer.sortBookmarksByNewest(bookmarks))
       .then(bookmarks => {
@@ -88,9 +95,9 @@ window.angular.module('pocket', [
   $scope.$watch('searchText', _.debounce(function(newVal, oldVal) {
     if(newVal !== oldVal) {
       if (!_.isEmpty(newVal)) {
-        freshLoadBookmarksManager(bookmarksManager.SearchBookmarksManagerFactory(newVal));
+        freshLoadBookmarksPaginator(bookmarksPaginator.SearchBookmarksPaginatorFactory(newVal));
       } else {
-        freshLoadBookmarksManager(defaultBookmarksManager);
+        freshLoadBookmarksPaginator(defaultBookmarksPaginator);
       }
     }
   }, searchDelayMs));
@@ -110,31 +117,23 @@ window.angular.module('pocket', [
     tabsBarOn = !tabsBarOn;
   };
 
-  /*
-  $scope.onRefresh = function() {
-    currentBookmarksManager.getRefreshUpdates()
-      .then((resolved) => freshLoadBookmarksManager(currentBookmarksManager),
-        (rejected) => null)
-      .then(() => $scope.$broadcast('scroll.refreshComplete'));
-  };*/
-
   function switchActiveTab(tabId) {
     $('#my-items, #favorited-items, #archived-items').removeClass('active');
     $(tabId).addClass('active');
   }
 
   $scope.loadArchivedBookmarks = function() {
-    freshLoadBookmarksManager(bookmarksManager.ArchivedBookmarksManager);
+    freshLoadBookmarksPaginator(bookmarksPaginator.ArchivedBookmarksPaginator);
     switchActiveTab('#archived-items');
   };
 
   $scope.loadUnreadBookmarks = function() {
-    freshLoadBookmarksManager(defaultBookmarksManager);
+    freshLoadBookmarksPaginator(defaultBookmarksPaginator);
     switchActiveTab('#my-items');
   };
 
   $scope.loadFavoritedBookmarks = function() {
-    freshLoadBookmarksManager(bookmarksManager.FavoriteBookmarksManager);
+    freshLoadBookmarksPaginator(bookmarksPaginator.FavoriteBookmarksPaginator);
     switchActiveTab('#favorited-items');
   };
 
@@ -147,14 +146,13 @@ window.angular.module('pocket', [
       item_id: item.item_id
     }, function(response) {
       if (response && response.error) {
-        common.logging.error('deleting bookmarks', response.error);
+        //common.logging.error('deleting bookmarks', response.error);
         return;
       }
-      common.logging('deleted bookmark');
-      common.logging(  $scope.bookmarks.splice(_.findKey($scope.bookmarks, b => b.item_id == item.id), 1));
-      common.logging($scope.bookmarks);
+
+      $scope.bookmarks.splice(_.findKey($scope.bookmarks, b => b.item_id == item.id), 1);
       $scope.$apply();
-      currentBookmarksManager.reset();
+      currentBookmarksPaginator.reset();
     });
   };
 
@@ -191,11 +189,6 @@ window.angular.module('pocket', [
     });
   }
 
-  $scope.addCurrentPageToPocket = function() {
-    common.getActiveTab().then((tab) => addBookmark(tab.url));
-    window.close();
-  };
-
   function addBookmark(url) {
     chrome.runtime.sendMessage(null, {
       command: 'addBookmark',
@@ -206,7 +199,6 @@ window.angular.module('pocket', [
     });
   }
 
-  // TODO
   $scope.addCurrentOrArticleView = function() {
     common.getActiveTab().then(function(tab) {
       if ($scope.pagePocketed) {
@@ -218,7 +210,7 @@ window.angular.module('pocket', [
   };
 
   $scope.wipeCache = function() {
-    defaultBookmarksManager.wipeCache();
+    defaultBookmarksPaginator.wipeCache();
   };
 
 });

@@ -50,56 +50,50 @@ class BookmarksTransformer {
       .value();
   }
 
+  static parseDomain(url) {
+    return url.match(/^((http[s]?|ftp):\/)?\/?([^:\/\s]+)(:([^\/]*))?/i)[3] || '';
+  }
   // definitelly going to be refactored, I just want to get the release working ASAP
   static processItem(item) {
     // Real URL is preferably the resolved URL but could be the given URL
-    var realURL = item.resolved_url || item.given_url;
+    let realURL = item.resolved_url || item.given_url;
+    item.url = realURL;
 
     // Regular expression to parse out the domain name of the URL, or an empty string if something fails
-    var domain = realURL.match(/^((http[s]?|ftp):\/)?\/?([^:\/\s]+)(:([^\/]*))?/i)[3] || '';
+    item.domain = BookmarksTransformer.parseDomain(item.url);
     // Fetches a icon from a great webservice which provides a default fallback icon
-    var icon = 'https://web-image.appspot.com/?url=' + realURL;
+    item.icon = 'https://web-image.appspot.com/?url=' + realURL;
 
-    var tags = _.isObject(item.tags) ? Object.keys(item.tags) : [];
+    item.tags = _.isObject(item.tags) ? Object.keys(item.tags) : [];
 
-    // Create a data object and push it to the items array
-    return { // future TODO: Do not create separate object, only edit the fields in |item|.
-      item_id: item.item_id,
-      url: realURL,
-      title: item.resolved_title || item.given_title,
-      excerpt: item.excerpt,
-      icon: icon,
-      domain: domain,
-      time: {
-        added: moment.unix(item.time_added),
-        updated: moment.unix(item.time_updated),
-        read: moment.unix(item.time_read),
-        favorited: moment.unix(item.time_favorited)
-      },
-      favorite: (parseInt(item.favorite) === 1),
-      tags: tags,
-      status: parseInt(item.status)
+    item.title = item.resolved_title || item.given_title;
+
+    item.time = {
+      added: moment.unix(item.time_added),
+      updated: moment.unix(item.time_updated),
+      read: moment.unix(item.time_read),
+      favorited: moment.unix(item.time_favorited)
     };
-  }
 
+    item.favorite = parseInt(item.favorite) === 1;
+    item.status = parseInt(item.status);
+
+    return item;
+  }
 }
 
 // their main responsibility is to handle pagination
-class BookmarksManagerInterface {
+class BookmarksPaginatorInterface {
   static getEndpoint() {
     return constants.pocket_api_endpoint + '/get';
   }
 
 
   static baseRequest(params) {
-    return request(BookmarksManagerInterface.getEndpoint(), params);
+    return request(BookmarksPaginatorInterface.getEndpoint(), params);
   }
 
   getNextBookmarks(/* count */) {
-    throw new Error('Not implemented');
-  }
-
-  update() {
     throw new Error('Not implemented');
   }
 
@@ -109,7 +103,7 @@ class BookmarksManagerInterface {
 
 }
 
-class BaseBookmarksManager extends BookmarksManagerInterface {
+class BaseBookmarksPaginator extends BookmarksPaginatorInterface {
   /**
    * @param requestParams specification of the API to be sent via /get
    */
@@ -126,8 +120,8 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
 
   request(additionalParams) {
     let requestParams = _.extend( _.clone(this.requestParams), additionalParams);
-    common.logging('request in bookmarksmanager and params', requestParams);
-    return BookmarksManagerInterface.baseRequest(requestParams);
+    common.logging('request in bookmarksPaginator and params', requestParams);
+    return BookmarksPaginatorInterface.baseRequest(requestParams);
   }
 
   /**
@@ -145,21 +139,14 @@ class BaseBookmarksManager extends BookmarksManagerInterface {
   reset() {
     this.offset = 0;
   }
-
-  update() { }
-
-  getRefreshUpdates(/*since*/) {
-    // basic implementation doesn't cache anything, so no need to refresh stuff
-    return Promise.reject({});
-  }
 }
 
 class Cache {
-  constructor(cacheName, shouldBeDeletedFunction, bookmarksManager) {
+  constructor(cacheName, shouldBeDeletedFunction, bookmarksPaginator) {
     // takes bookmark, returns boolean
     // status - 0, 1, 2 - 1 if the item is archived - 2 if the item should be deleted
     this.shouldBeDeleted = shouldBeDeletedFunction;
-    this.bookmarksManager = bookmarksManager;
+    this.bookmarksPaginator = bookmarksPaginator;
 
     this.cacheTimestampKey = cacheName + '_timestamp';
     this.cacheItemsKey = cacheName + '_items';
@@ -179,7 +166,7 @@ class Cache {
   }
 
   _loadBookmarksFromScratch() {
-    return this.bookmarksManager.request({}).then(bookmarks => {
+    return this.bookmarksPaginator.request({}).then(bookmarks => {
       let bookmarksSince = bookmarks.since;
       let bookmarksList = bookmarks.list;
       return common.saveToStorage(this.cacheItemsKey, bookmarksList)
@@ -190,7 +177,7 @@ class Cache {
   // may return a rejected promise!
   _checkBookmarksFromLastTime() {
     return common.getFromStorage(this.cacheTimestampKey)
-      .then(timestamp => BookmarksManagerInterface.baseRequest({since: timestamp}))
+      .then(timestamp => BookmarksPaginatorInterface.baseRequest({since: timestamp}))
       .then(updateResponse => {
         common.logging('>>>update response', JSON.stringify(updateResponse));
         let updatedSince = updateResponse.since;
@@ -205,7 +192,6 @@ class Cache {
         }
       })
       .then(mergedBookmarks => common.saveToStorage(this.cacheItemsKey, mergedBookmarks));
-    // TODO add .then(failed promise) -> when internet is down
   }
 
   get() {
@@ -215,6 +201,7 @@ class Cache {
   tryGetFresh() {
     return this.update().then(() => this.get(), () => this.get());
   }
+
   /**
    * @param bookmarksList object where key=bookmark_id, value=whole bookmark info
    * @param updateBookmarksList object where key=bookmark_id, value=whole bookmark info
@@ -257,20 +244,19 @@ class Cache {
   }
 }
 
-class CachedBookmarksManager extends BookmarksManagerInterface {
-  constructor(cacheName, bookmarksManager, shouldBeDeletedFunction) {
+class CachedBookmarksPaginator extends BookmarksPaginatorInterface {
+  constructor(cacheName, bookmarksPaginator, shouldBeDeletedFunction) {
     super();
-    this.cache = new Cache(cacheName, shouldBeDeletedFunction, bookmarksManager);
+    this.cache = new Cache(cacheName, shouldBeDeletedFunction, bookmarksPaginator);
+    this.reset();
+  }
+
+  reset() {
     this.cache.update();
 
     // once it gave the complete list of bookmarks (all the pages)
     // it doesn't have anything. (equivalent of giving the last page of bookmarks)
     // so from now can only refresh for changes
-    this.alreadyGivenBookmarks = false;
-  }
-
-  reset() {
-    this.cache.update();
     this.alreadyGivenBookmarks = false;
   }
 
@@ -283,34 +269,31 @@ class CachedBookmarksManager extends BookmarksManagerInterface {
     }
   }
 
-  // todo might delete
-  update(/*since*/) {
-    return this.cache.update();
-  }
-
   wipeCache() {
     this.cache.wipe();
   }
 }
 
-let ArchivedBookmarksManager = new BaseBookmarksManager({state: 'archive'});
-let UnreadBookmarksManager = new BaseBookmarksManager({state: 'unread'});
-let FavoriteBookmarksManager = new BaseBookmarksManager({state: 'all', favorite: 1});
+let ArchivedBookmarksPaginator = new BaseBookmarksPaginator({state: 'archive'});
+let UnreadBookmarksPaginator = new BaseBookmarksPaginator({state: 'unread'});
+let FavoriteBookmarksPaginator = new BaseBookmarksPaginator({state: 'all', favorite: 1});
 
-let UnreadCachedBookmarksManager = new CachedBookmarksManager('UnreadBMCache_', UnreadBookmarksManager, bookmark => bookmark.status > 0);
+let UnreadCachedBookmarksPaginator = new CachedBookmarksPaginator('UnreadBMCache_',
+  UnreadBookmarksPaginator, bookmark => bookmark.status > 0);
 
-let SearchBookmarksManagerFactory = function(searchPhrase) {
-  return new BaseBookmarksManager({state: 'unread', search: searchPhrase});
+let SearchBookmarksPaginatorFactory = function(searchPhrase) {
+  return new BaseBookmarksPaginator({state: 'unread', search: searchPhrase});
 };
 
-window.request = request;
-
-window.bookmarksManager =
+window.bookmarksPaginator =
   module.exports = {
     BookmarksTransformer,
-    UnreadCachedBookmarksManager,
-    FavoriteBookmarksManager,
-    SearchBookmarksManagerFactory,
-    UnreadBookmarksManager,
-    ArchivedBookmarksManager
+    UnreadCachedBookmarksPaginator,
+    FavoriteBookmarksPaginator,
+    SearchBookmarksPaginatorFactory,
+    ArchivedBookmarksPaginator,
+
+    // for debugging purposes only
+    UnreadBookmarksPaginator,
+    request
   };

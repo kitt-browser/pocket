@@ -145,11 +145,6 @@ $(function() {
          .done();
         return true;
 
-//      case 'wipeBookmarkCache':
-//        watchpocket.wipeBookmarkCache();
-//        sendResponse({text: 'cache wiped'});
-//        return true;
-
       case 'archiveBookmark':
         console.log('THIS IS ARCHIVED', request.item_id);
         watchpocket.sendApiRequest([{action: 'archive', item_id: request.item_id}])

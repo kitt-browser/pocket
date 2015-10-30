@@ -169,10 +169,10 @@
 
   <body ng-controller="bookmarksCtrl">
 
-    <div id="currentPage" class="bar bar-header bar-light">
-      <h1>item title soifv osidfv osidfjov sidjfv osdifjov ssdfv ds</h1>
-      <p>item domain sdfv osidjfv osidjfv osidjfv osidjfv osdifjv osdij</p>
-      <button class="button ion-ios7-plus" ng-click="addCurrentOrArticleView()"></button>
+    <div id="current-page" class="bar bar-header bar-light">
+      <h1 id="current-page-title">item title soifv osidfv osidfjov sidjfv osdifjov ssdfv ds</h1>
+      <p id="current-page-domain">item domain sdfv osidjfv osidjfv osidjfv osidjfv osdifjv osdij</p>
+      <button id="add-or-article-view" class="button" ng-click="addCurrentOrArticleView()"></button>
     </div>
 
     <div class="btn-bar">
@@ -196,22 +196,8 @@
       <button class="button ion-ios7-search" ng-click="showSearchBar()"></button>
     </div>
 
-    <!-- This can be removed now:
-      <div class="bar bar-header bar-light item-input-inset">
-        <button class="button ion-ios7-close" ng-click="wipeCache()" ng-show="debugMode"></button>
-        <label class="item-input-wrapper">
-          <i class="icon ion-ios7-search placeholder-icon"></i>
-          <input type="search" placeholder="Search" ng-model="searchText">
-        </label>
-        <button id="add-or-article-view" class="button ion-ios7-plus" ng-click="addCurrentOrArticleView()"></button>
-      </div>
-    -->
 
     <ion-content class="has-header">
-     <!--
-      <ion-refresher on-refresh="onRefresh()"></ion-refresher>
--->
-
 
       <ion-list class="list" can-swipe="true">
 
