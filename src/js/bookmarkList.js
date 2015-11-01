@@ -153,7 +153,7 @@ window.angular.module('pocket', [
         return;
       }
 
-      $scope.bookmarks.splice(_.findKey($scope.bookmarks, b => b.item_id == item.id), 1);
+      $scope.bookmarks.splice(_.findKey($scope.bookmarks, b => b.item_id == item.item_id), 1);
       $scope.$apply();
       currentBookmarksPaginator.reset();
     });
