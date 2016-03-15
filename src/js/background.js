@@ -15,11 +15,13 @@ Minilog.enable();
 var oauthRequestToken = null;
 var oauthAccessToken = null;
 
+let auth = require('./auth');
 $.support.cors = true;
 
 function post(url, data) {
   return makeRequest(url, 'POST', data);
 }
+
 
 
 
@@ -134,12 +136,14 @@ $(function() {
         return true;
 
       case 'getOauthRequestToken':
+        log.debug('@@REQUEST TOKEN' + oauthRequestToken);
         sendResponse(null, oauthRequestToken);
         break;
 
       case 'getOauthAccessToken':
         oauth.getAccessToken()
           .then(function(token) {
+            log.debug('@@ACCESS TOKEN' + token);
             sendResponse(null, token);
           })
          .done();
@@ -180,3 +184,4 @@ $(function() {
 // debugging purposes only
 window.post = post;
 window.makeRequest = makeRequest;
+window.oauth = oauth;

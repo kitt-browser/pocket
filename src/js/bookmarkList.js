@@ -19,20 +19,23 @@ function isMobile() {
   return window.navigator.userAgent.indexOf('Mobile') !== -1;
 }
 
-
 window.angular.module('pocket', [
   'ionic'
 ]).controller('bookmarksCtrl', function($scope, $ionicLoading) {
-  if (!isMobile()) { // for debugging purposes
+
+  // for debugging purposes
+  if (!isMobile()) {
     document.body.style.width = '400px';
     document.body.style.height = '400px';
   }
+  window.$scope = $scope;
 
   $scope.bookmarks = []; // bookmarks being displayed
   $scope.allResultsFetched = false; // when set to true, it disables the spinning wheel
-  $scope.pagePocketed = false; //indicates whether the current page is in pocket
+  $scope.pagePocketed = false; // indicates whether the current page is in pocket
 
-
+  $("#archived-items").text(chrome.i18n.getMessage("archived"));
+  $("#favorited-items").text(chrome.i18n.getMessage("favorites"));
   // parameters used with bookmarksPaginator
   const itemsPerPage = 20;
 
@@ -51,6 +54,8 @@ window.angular.module('pocket', [
       $scope.allResultsFetched = false;
       $scope.loadNextPage();
     }
+
+    $("#my-items").text(chrome.i18n.getMessage("myList", newVal.length.toString()));
 
     // Change add button to article view if page has already been pocketed
     // or back to add button if it has been removed

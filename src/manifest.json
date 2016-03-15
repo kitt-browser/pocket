@@ -40,5 +40,7 @@
     "notification.html",
     "auth.html",
     "html/articleViewToolbar.html"
-  ]
+  ],
+  "default_locale": "en"
+
 }

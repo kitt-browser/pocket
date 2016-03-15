@@ -118,6 +118,11 @@ module.exports = function(grunt) {
             src: ['fonts/*.*'],
             cwd: 'node_modules/ionic-framework/release',
             dest: BUILD
+          }, {
+            expand: true,
+            src: ['_locales/**'],
+            cwd: 'src',
+            dest: BUILD
           }, {}
         ]
       }

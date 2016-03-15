@@ -30,7 +30,7 @@ $(function() {
       for(var i = 0; i < terms.length; i++) {
         var key = terms[i].split('=')[0];
         var value = terms[i].split('=')[1];
-
+        console.log("key:" + key + "val: " + value);
         if (key === 'url') {
           // This is only way, which I managed to get URL with symbols like (=,?,...) through login process
           url = decodeURIComponent(window.atob(value));
@@ -41,8 +41,7 @@ $(function() {
       // The tab originally had no URL
       url = 'about:blank';
     }
-    console.log('Response with ' + url);
-
+    console.log('Response with ' + url + ' typeof='+ typeof url);
     if (url) {
       chrome.runtime.sendMessage({command: 'getOauthRequestToken'}, function(err, reqToken) {
         chrome.runtime.sendMessage({command: 'getOauthAccessToken'}, function(err, accessToken) {
