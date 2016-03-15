@@ -1,19 +1,14 @@
 require('../../node_modules/ionic-framework/release/css/ionic.css');
 
-/**
- * Created by tomasnovella on 9/2/15.
- */
-/**
- * Created by tomasnovella on 8/28/15.
- */
+let _ = require('lodash');
+let $ = require('jquery');
+
 function getParameterByName(name) {
   name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
   var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
     results = regex.exec(window.location.search);
   return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
-var _ = require('underscore');
-var $ = require('jquery');
 
 function generateAction(actionName, itemId, properties) {
   var action = {
@@ -25,15 +20,14 @@ function generateAction(actionName, itemId, properties) {
   return _.extend(action, properties);
 }
 
-
 function sendAction(action) {
   chrome.runtime.sendMessage(null, {
     command: 'modifyBookmark',
     action: action
   }, function() {
-      chrome.runtime.sendMessage(null, {
-        command: 'updateBookmarks'
-      });
+    chrome.runtime.sendMessage(null, {
+      command: 'updateBookmarks'
+    });
   });
 }
 
@@ -53,7 +47,7 @@ function removeStarRequest(itemId) {
 }
 
 function archiveItemRequest(itemId) {
-  chrome.runtime.sendMessage(null, {command: 'archiveBookmark', id: itemId});
+  chrome.runtime.sendMessage(null, {command: 'archiveBookmark', item_id: itemId});
 }
 
 
@@ -87,55 +81,62 @@ function addTag(itemId, tagName) {
 }
 */
 
-function render(itemId) {
-  chrome.runtime.sendMessage(null, {command:'getBookmark', id: itemId}, function(item) {
+function render(article) {
+  let itemId = article.item_id;
 
-    document.getElementById('menuDelete').onclick = function() {
-      deleteItemRequest(itemId);
-      this.className="deleted";
-    };
+  document.getElementById('menuDelete').onclick = function() {
+    deleteItemRequest(itemId);
+    this.className="deleted";
+  };
 
-    var menuToggleStar = document.getElementById('menuToggleStar');
-    menuToggleStar.innerHTML = '';
-    var star = document.createElement('i');
-    star.className = 'icon ion-android-star';
-    menuToggleStar.className = item.favorite ? 'star-on' : 'star-off';
-    menuToggleStar.appendChild(star);
-    menuToggleStar.onclick = function() {
-      if (menuToggleStar.className === 'star-on') {
-        removeStarRequest(itemId);
-        menuToggleStar.className = 'star-off';
-      } else {
-        addStarRequest(itemId);
-        menuToggleStar.className = 'star-on';
-      }
-    };
+  var menuToggleStar = document.getElementById('menuToggleStar');
+  menuToggleStar.innerHTML = '';
+  var star = document.createElement('i');
+  star.className = 'icon ion-android-star';
+  menuToggleStar.className = article.favorite ? 'star-on' : 'star-off';
+  menuToggleStar.appendChild(star);
+  menuToggleStar.onclick = function() {
+    if (menuToggleStar.className === 'star-on') {
+      removeStarRequest(itemId);
+      menuToggleStar.className = 'star-off';
+    } else {
+      addStarRequest(itemId);
+      menuToggleStar.className = 'star-on';
+    }
+  };
 
-    document.getElementById('menuArchive').onclick = function() {
-      archiveItemRequest(itemId);
-      this.className="archived";
-    };
+  let status = parseInt(article.status);
+  if (status === 1) {
+    document.getElementById('menuArchive').className = 'archived';
+  }
+  if (status === 2) {
+    document.getElementById('menuDelete').className = 'deleted';
+  }
 
-    /*
-    _.forEach(item.tags, function(tagName) {
-      var deleteTagId = '#delete_' + getTagId(tagName);
-      $('#menuTags').append(generateTagHtml(tagName));
-      $(deleteTagId).click(function() {
-        deleteTag(itemId, tagName);
-      });
+  document.getElementById('menuArchive').onclick = function() {
+    archiveItemRequest(itemId);
+    this.className="archived";
+  };
+
+  /*
+  _.forEach(article.tags, function(tagName) {
+    var deleteTagId = '#delete_' + getTagId(tagName);
+    $('#menuTags').append(generateTagHtml(tagName));
+    $(deleteTagId).click(function() {
+      deleteTag(itemId, tagName);
     });
-
-    $('#addTagForm').submit(function(e) {
-      e.preventDefault();
-      var newTagName = $('#menuAddTag').val();
-      addTag(itemId, newTagName);
-      $('#menuAddTag').val('');
-    });
-    */
-
   });
+
+  $('#addTagForm').submit(function(e) {
+    e.preventDefault();
+    var newTagName = $('#menuAddTag').val();
+    addTag(itemId, newTagName);
+    $('#menuAddTag').val('');
+  });
+  */
 }
+
 window.onload = function() {
-  var articleId = parseInt(getParameterByName('id'));
-  render(articleId);
+  let article = JSON.parse(getParameterByName('item'));
+  render(article);
 };

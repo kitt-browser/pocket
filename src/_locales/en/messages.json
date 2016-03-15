@@ -1,0 +1,22 @@
+{
+  "README": {
+    "message": "The translation file may be more complicated than it could be, because we want to test the chrome.i18n API"
+  },
+  "myList": {
+    "message": "$listName$ ($nItems$)",
+    "placeholders": {
+      "listName": {
+        "content": "My List"
+      },
+      "nItems": {
+        "content": "$1"
+      }
+    }
+  },
+  "archived": {
+    "message": "Archived"
+  },
+  "favorites": {
+    "message": "Favs"
+  }
+}

@@ -5,29 +5,206 @@
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
     <title>Pocket Extension</title>
     <script src="../js/bookmarkList.js"></script>
+    <style>
+      /* items list */
+      .btn-bar {
+        background: #f8f8f9;
+        padding: 8px 60px 8px 16px;
+        border-bottom: 1px solid #ddd;
+        position: absolute;
+        top: 59px;
+        width: 100%;
+        box-sizing: border-box;
+        z-index: 1;
+      }
+
+      .btn-bar ul {
+        border: 1px solid #157efb;
+        border-radius: 4px;
+        width: 100%;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 34px;
+        display: none;
+      }
+
+      .btn-bar ul.active {
+        display: block;
+      }
+
+      .btn-bar .item-input-wrapper {
+        border: 1px solid #157efb;
+        border-radius: 4px;
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        padding: 0 8px;
+        line-height: 34px;
+        height: 34px;
+        position: relative;
+        background: #fff;
+        display: none;
+      }
+
+      .btn-bar .item-input-wrapper input {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        line-height: 34px;
+        height: 34px;
+        left: 0;
+        right: 0;
+        padding: 0 8px 0 30px;
+        -webkit-appearance: none;
+        background: transparent;
+      }
+
+      .btn-bar .item-input-wrapper.active {
+        display: block;
+      }
+
+      .btn-bar li {
+        display: block;
+        float:left;
+        width: 33.333%;
+        text-align: center;
+        box-sizing: border-box;
+        border-right: 1px solid #157efb;
+        color: #157efb;
+        padding: 0;
+        margin: 0;
+        height: 32px;
+        line-height: 32px;
+        cursor: pointer;
+        -webkit-transition: all .2s all;
+        transition: all .2s all;
+      }
+
+      .btn-bar li:last-child {
+        border-right: 0;
+      }
+
+      .btn-bar li.active {
+        background: #157efb;
+        color: #fff;
+      }
+
+      .has-header {
+        top: 109px;
+        z-index: 0;
+      }
+
+      .bar.bar-header.bar-light {
+        border-color: #ddd;
+        background: #f8f8f9;
+        color: #444;
+        position: relative;
+        display: block;
+        padding: 8px 60px 8px 16px;
+        font-size: 16px;
+        height: 59px;
+      }
+
+      .bar.bar-header.bar-light h1 {
+        font-size: 16px;
+        margin: 0 0 4px 0;
+        padding: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bar.bar-header.bar-light p {
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bar.bar-header.bar-light button.button, ion-item button.button,
+      .btn-bar button.button {
+        position: absolute;
+        top: 12px;
+        right: 8px;
+        color: #157efb;
+        display: inline-block;
+        margin: 0;
+        padding: 0 8px;
+        border: 0;
+        background: transparent;
+        vertical-align: top;
+        text-align: center;
+        font-size: 28px;
+        line-height: 34px;
+        cursor: pointer;
+        min-width: auto;
+        min-height: auto;
+      }
+
+      .btn-bar button.button {
+        top: 8px;
+        padding: 0 10px;
+      }
+
+      ion-item button.button {
+        padding: 0 12px;
+      }
+
+      .bar.bar-header.bar-light button.button:hover, ion-item button.button:hover,
+      .bar.bar-header.bar-light button.button:active, ion-item button.button:active {
+        color: #157efb;
+      }
+
+      .item-complex .item-content {
+        padding: 8px 60px 8px 16px;
+      }
+
+      .item-complex .item-content p {
+        margin: 0;
+      }
+    </style>
   </head>
 
   <body ng-controller="bookmarksCtrl">
 
-    <div class="bar bar-header bar-calm item-input-inset">
-      <button class="button ion-ios7-close" ng-click="wipeCache()" ng-show="debugMode"></button>
-      <label class="item-input-wrapper">
+    <div id="current-page" class="bar bar-header bar-light">
+      <h1 id="current-page-title">item title soifv osidfv osidfjov sidjfv osdifjov ssdfv ds</h1>
+      <p id="current-page-domain">item domain sdfv osidjfv osidjfv osidjfv osidjfv osdifjv osdij</p>
+      <button id="add-or-article-view" class="button" ng-click="addCurrentOrArticleView()"></button>
+    </div>
+
+    <div class="btn-bar">
+      <!--
+        UI note: only ul container or search (.item-input-wrapper)
+        container should be visible depending on which one of these
+        has "active" class.
+
+        Also ion-ios7-search class on the toggle button should change to
+        ion-ios7-close class when search container is active.
+      -->
+      <ul id="tabsBar" class="active">
+        <li id="my-items" ng-click="loadUnreadBookmarks()" class="active">MyList(loading)</li>
+        <li id="archived-items" ng-click="loadArchivedBookmarks();">Archived</li>
+        <li id="favorited-items" ng-click="loadFavoritedBookmarks()">Favs</li>
+      </ul>
+      <label id="searchBar" class="item-input-wrapper">
         <i class="icon ion-ios7-search placeholder-icon"></i>
         <input type="search" placeholder="Search" ng-model="searchText">
       </label>
-      <button id="add-or-article-view" class="button ion-ios7-plus" ng-click="addCurrentOrArticleView()"></button>
+      <button id="search-or-close" class="button ion-ios7-search" ng-click="showSearchBar()"></button>
     </div>
 
 
     <ion-content class="has-header">
-
-      <ion-refresher on-refresh="onRefresh()"></ion-refresher>
 
       <ion-list class="list" can-swipe="true">
 
         <ion-item ng-repeat="item in bookmarks" href="#" class="item" ng-click="bookmarkSelected(item)">
           <h2>{{ item.title || item.url }}</h2>
           <p>{{ item.domain }}</p>
+          <button class="button ion-ios7-paper" ng-click="articleView($event, item)"></button>
           <ion-option-button class="button-calm" ng-click="archive($event, item)"><span class="v-center">archive</span></ion-option-button>
         </ion-item>
 
